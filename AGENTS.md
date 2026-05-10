@@ -12,6 +12,9 @@
 ## Specifications
 - `SPECS.md` contains the high-level system specification (ticketing + AI triage). It is not executable configuration.
 
+## Architecture
+- `DESIGN.md` is a living document capturing the current architecture and design decisions. It must be kept updated as the project evolves and should be read as the primary source of architectural context at any point in time.
+
 ## Commit Policy
 - After each significant change, ask the user whether or not to commit the changes before proceeding.
 
