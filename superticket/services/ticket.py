@@ -79,7 +79,7 @@ class TicketService:
     def list_(session: Session, *, skip: int = 0, limit: int = 100) -> list[Ticket]:
         """Paginated listing of tickets ordered by newest first."""
         result = session.execute(
-            select(Ticket).order_by(Ticket.created_at.desc()).offset(skip).limit(limit)
+            select(Ticket).order_by(Ticket.created_at.desc(), Ticket.id.desc()).offset(skip).limit(limit)
         )
         return list(result.scalars().all())
 
