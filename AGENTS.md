@@ -6,8 +6,14 @@
 - **Package manager:** `uv` (PEP 621). Every Python command must be run with `uv run`.
 
 ## Tooling — Current State
-- **No test runner, linter, formatter, typechecker, or CI is configured yet.**
-- Do not assume `pytest`, `ruff`, `mypy`, etc. are available unless they appear in `pyproject.toml` dependencies.
+- **Test runner**: `pytest` (with `pytest-asyncio` and `pytest-cov`)
+- **Linter / Formatter**: `ruff`
+- **No typechecker or CI is configured yet.**
+- Do not assume `mypy`, etc. are available unless they appear in `pyproject.toml` dependencies.
+
+## Testing Policy
+- For every testable atomic functionality written, the agent must write a corresponding test. No exceptions. Tests should be written immediately after the feature implementation, not deferred.
+- Use `pytest` and `pytest-asyncio` for async tests. Aim for high coverage on business logic, especially state machine transitions and service layer operations.
 
 ## Specifications
 - `SPECS.md` contains the high-level system specification (ticketing + AI triage). It is not executable configuration.
@@ -17,6 +23,7 @@
 
 ## Commit Policy
 - After each significant change, ask the user whether or not to commit the changes before proceeding.
+- When committing, always include **all** changes: added, modified, and removed files. Use `git add -A` to ensure nothing is left out.
 
 ## Versioning
 - Use semantic versioning with stage suffixes:
