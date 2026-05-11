@@ -233,15 +233,15 @@ We use semantic versioning with explicit stage suffixes:
 
 These features are intentionally out of scope for the current MVP to keep complexity low.
 
-| Milestone | Feature                                      |
-|-----------|----------------------------------------------|
-| 2         | User authentication (OAuth2 / SAML)          |
-| 3         | LLM Triage Integration (OpenAI-compatible)   |
-| 4         | Web UI (Self-Service Portal, Agent Workspace)|
-| 5         | Email-to-Ticket Processing                   |
-| 6         | Webhook Subscriptions (Slack, Teams, Jira)   |
-| 7         | SLA Management Engine & Breach Alerts        |
-| 8         | Containerization (Docker)                    |
+| Milestone | Version       | Feature                                      |
+|-----------|---------------|----------------------------------------------|
+| 2         | alpha.2       | User authentication (OAuth2 / SAML)          |
+| 3         | alpha.3       | Web UI (Self-Service Portal, Agent Workspace)|
+| 4         | alpha.4       | LLM Triage Integration (OpenAI-compatible)   |
+| 5         | beta.1        | Email-to-Ticket Processing                   |
+| 6         | beta.2        | Webhook Subscriptions (Slack, Teams, Jira)   |
+| 7         | beta.3        | SLA Management Engine & Breach Alerts        |
+| 8         | 0.1.0-rc1     | Containerization (Docker)                    |
 
 ---
 
