@@ -261,14 +261,16 @@ This keeps secrets out of the codebase and makes the application 12-factor compl
 
 ## 10. Testing Strategy
 
-**Current State**: No test runner is configured.
+**Current State**: Test infrastructure is fully configured and operational.
 
-**Recommended Path**: Once we are ready to add tests (post-MVP or during a stabilization phase), the stack should be:
+**Active Stack**:
 - **Runner**: `pytest`
 - **Coverage**: `pytest-cov`
-- **HTTP Client**: `httpx` (FastAPI `TestClient`)
+- **HTTP Client**: `httpx` (via FastAPI `TestClient`)
 - **Fixtures**: `pytest-asyncio` for async service tests
-- **DB**: `pytest` fixtures creating a temporary SQLite DB per test session
+- **DB**: Session-scoped SQLite in-memory engine with function-scoped transaction rollback fixtures (`tests/conftest.py`)
+
+**Test Suite**: 69 tests covering the state machine, service layer, API endpoints, and ORM models.
 
 ---
 

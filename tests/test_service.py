@@ -20,7 +20,6 @@ class TestCreate:
             item="Keyboard",
             urgency="medium",
             impact="individual",
-            priority="P3",
         )
         assert ticket.id == "INC-2026-010"
         assert ticket.state == TicketState.NEW.value
@@ -35,7 +34,6 @@ class TestCreate:
             item="Crash",
             urgency="high",
             impact="dept",
-            priority="P2",
         )
         logs = db_session.execute(
             select(AuditLog).where(AuditLog.ticket_id == "INC-2026-011")
@@ -56,7 +54,6 @@ class TestGet:
             item="Access",
             urgency="low",
             impact="org",
-            priority="P1",
         )
         fetched = TicketService.get(db_session, "INC-2026-012")
         assert fetched.requester_id == "user-12"
@@ -79,7 +76,6 @@ class TestList:
                 item="General",
                 urgency="low",
                 impact="individual",
-                priority="P4",
             )
         results = TicketService.list_(db_session, skip=0, limit=3)
         assert len(results) == 3
@@ -97,7 +93,6 @@ class TestList:
                 item="General",
                 urgency="low",
                 impact="individual",
-                priority="P4",
             )
         results = TicketService.list_(db_session, skip=1, limit=10)
         assert len(results) == 2
@@ -115,7 +110,7 @@ class TestUpdate:
             item="Unlock",
             urgency="high",
             impact="individual",
-            priority="P2",
+
         )
         updated = TicketService.update(
             db_session,
@@ -137,7 +132,7 @@ class TestUpdate:
             item="General",
             urgency="low",
             impact="individual",
-            priority="P4",
+
         )
         TicketService.update(
             db_session,
@@ -165,7 +160,7 @@ class TestUpdate:
             item="General",
             urgency="low",
             impact="individual",
-            priority="P4",
+
         )
         with pytest.raises(ValueError, match="not mutable"):
             TicketService.update(db_session, "INC-2026-015", state="closed")
@@ -180,7 +175,7 @@ class TestUpdate:
             item="General",
             urgency="low",
             impact="individual",
-            priority="P4",
+
         )
         TicketService.update(db_session, "INC-2026-016", category="Misc")
         logs = db_session.execute(
@@ -202,7 +197,7 @@ class TestTransitionState:
             item="General",
             urgency="low",
             impact="individual",
-            priority="P4",
+
         )
         updated = TicketService.transition_state(
             db_session, "INC-2026-017", TicketState.TRIAGE, performed_by="bot"
@@ -219,7 +214,7 @@ class TestTransitionState:
             item="General",
             urgency="low",
             impact="individual",
-            priority="P4",
+
         )
         with pytest.raises(InvalidStateTransition):
             TicketService.transition_state(
@@ -236,7 +231,7 @@ class TestTransitionState:
             item="General",
             urgency="low",
             impact="individual",
-            priority="P4",
+
         )
         TicketService.transition_state(
             db_session, "INC-2026-019", TicketState.ASSIGNED, performed_by="dispatcher"
@@ -261,7 +256,7 @@ class TestTransitionState:
             item="General",
             urgency="low",
             impact="individual",
-            priority="P4",
+
         )
         TicketService.transition_state(db_session, "INC-2026-020", TicketState.ASSIGNED)
         TicketService.transition_state(db_session, "INC-2026-020", TicketState.IN_PROGRESS)

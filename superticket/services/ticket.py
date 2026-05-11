@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from superticket.core.exceptions import InvalidStateTransition, TicketNotFound
@@ -14,6 +14,24 @@ from superticket.services.state_machine import transition
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _compute_priority(urgency: str, impact: str) -> str:
+    """Map urgency × impact to a priority code (P1–P4)."""
+    urgency = urgency.lower()
+    impact = impact.lower()
+    matrix = {
+        ("high", "org"): "P1",
+        ("high", "dept"): "P2",
+        ("high", "individual"): "P2",
+        ("medium", "org"): "P2",
+        ("medium", "dept"): "P3",
+        ("medium", "individual"): "P3",
+        ("low", "org"): "P3",
+        ("low", "dept"): "P4",
+        ("low", "individual"): "P4",
+    }
+    return matrix.get((urgency, impact), "P3")
 
 
 class TicketService:
@@ -30,9 +48,10 @@ class TicketService:
         item: str,
         urgency: str,
         impact: str,
-        priority: str,
+        priority: str | None = None,
     ) -> Ticket:
         """Create a new ticket in the `NEW` state and log the creation."""
+        computed_priority = priority or _compute_priority(urgency, impact)
         ticket = Ticket(
             id=id,
             requester_id=requester_id,
@@ -41,7 +60,7 @@ class TicketService:
             item=item,
             urgency=urgency,
             impact=impact,
-            priority=priority,
+            priority=computed_priority,
             state=TicketState.NEW.value,
         )
         session.add(ticket)
@@ -74,6 +93,12 @@ class TicketService:
         if ticket is None:
             raise TicketNotFound(ticket_id)
         return ticket
+
+    @staticmethod
+    def count(session: Session) -> int:
+        """Return the total number of tickets in the database."""
+        result = session.execute(select(func.count()).select_from(Ticket))
+        return result.scalar() or 0
 
     @staticmethod
     def list_(session: Session, *, skip: int = 0, limit: int = 100) -> list[Ticket]:

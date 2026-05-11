@@ -62,7 +62,6 @@ class TestCreateTicket:
                 "item": "Screen",
                 "urgency": "high",
                 "impact": "individual",
-                "priority": "P2",
             },
         )
         assert response.status_code == 201
@@ -79,7 +78,6 @@ class TestCreateTicket:
             "item": "Crash",
             "urgency": "low",
             "impact": "dept",
-            "priority": "P3",
         }
         r1 = client.post("/api/v1/tickets", json=payload)
         assert r1.status_code == 201
@@ -99,7 +97,6 @@ class TestGetTicket:
                 "item": "Access",
                 "urgency": "medium",
                 "impact": "org",
-                "priority": "P1",
             },
         )
         response = client.get("/api/v1/tickets/INC-2026-032")
@@ -125,13 +122,13 @@ class TestListTickets:
                     "item": "General",
                     "urgency": "low",
                     "impact": "individual",
-                    "priority": "P4",
                 },
             )
         response = client.get("/api/v1/tickets?limit=2")
         assert response.status_code == 200
         data = response.json()
         assert len(data["items"]) == 2
+        assert data["total"] >= 3
         assert data["limit"] == 2
 
 
@@ -147,7 +144,6 @@ class TestUpdateTicket:
                 "item": "Unlock",
                 "urgency": "high",
                 "impact": "individual",
-                "priority": "P2",
             },
         )
         response = client.patch(
@@ -170,7 +166,6 @@ class TestUpdateTicket:
                 "item": "General",
                 "urgency": "low",
                 "impact": "individual",
-                "priority": "P4",
             },
         )
         response = client.patch(
@@ -199,7 +194,6 @@ class TestTransitionTicket:
                 "item": "General",
                 "urgency": "low",
                 "impact": "individual",
-                "priority": "P4",
             },
         )
         response = client.post(
@@ -220,7 +214,6 @@ class TestTransitionTicket:
                 "item": "General",
                 "urgency": "low",
                 "impact": "individual",
-                "priority": "P4",
             },
         )
         response = client.post(
@@ -250,7 +243,6 @@ class TestAuditLog:
                 "item": "General",
                 "urgency": "low",
                 "impact": "individual",
-                "priority": "P4",
             },
         )
         client.post(

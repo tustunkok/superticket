@@ -35,7 +35,8 @@ def create_ticket(data: TicketCreate, db: Session = Depends(get_db)) -> TicketOu
 def list_tickets(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)) -> TicketListOut:
     """List tickets with pagination."""
     items = TicketService.list_(db, skip=skip, limit=limit)
-    return TicketListOut(total=len(items), skip=skip, limit=limit, items=items)
+    total = TicketService.count(db)
+    return TicketListOut(total=total, skip=skip, limit=limit, items=items)
 
 
 @router.get("/{ticket_id}", response_model=TicketOut)

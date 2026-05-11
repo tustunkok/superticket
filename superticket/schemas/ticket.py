@@ -32,7 +32,6 @@ class TicketCreate(BaseModel):
     item: str
     urgency: str
     impact: str
-    priority: str
 
 
 class TicketUpdate(BaseModel):
