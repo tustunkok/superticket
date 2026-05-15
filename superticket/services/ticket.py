@@ -49,6 +49,7 @@ class TicketService:
         urgency: str,
         impact: str,
         priority: str | None = None,
+        performed_by: str | None = None,
     ) -> Ticket:
         """Create a new ticket in the `NEW` state and log the creation."""
         computed_priority = priority or _compute_priority(urgency, impact)
@@ -81,6 +82,7 @@ class TicketService:
                 "priority": ticket.priority,
                 "state": ticket.state,
             },
+            performed_by=performed_by,
         )
         session.add(log)
         session.commit()

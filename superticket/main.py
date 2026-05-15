@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
+from superticket.api.v1.auth import router as auth_router
 from superticket.api.v1.tickets import router as tickets_router
 from superticket.core.config import settings
 from superticket.core.exceptions import InvalidStateTransition, TicketNotFound
@@ -43,6 +44,7 @@ async def invalid_state_transition_handler(request, exc: InvalidStateTransition)
 
 
 app.include_router(tickets_router, prefix="/api/v1")
+app.include_router(auth_router, prefix="/api/v1")
 
 
 @app.get("/health")

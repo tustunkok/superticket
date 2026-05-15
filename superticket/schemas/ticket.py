@@ -69,7 +69,6 @@ class TicketTransition(BaseModel):
     """Request body for a state transition."""
 
     target_state: TicketState
-    performed_by: str | None = None
 
 
 class TicketListOut(BaseModel):

@@ -82,20 +82,25 @@ superticket-project/
 │   ├── api/
 │   │   ├── __init__.py
 │   │   └── v1/
-│   │       └── tickets.py   # Ticket CRUD & state transition endpoints
+│   │       ├── auth.py        # User registration, login, and profile endpoints
+│   │       └── tickets.py     # Ticket CRUD & state transition endpoints
 │   ├── schemas/
 │   │   ├── __init__.py
-│   │   └── ticket.py        # Pydantic request & response DTOs
+│   │   ├── ticket.py          # Pydantic request & response DTOs
+│   │   └── user.py            # Pydantic user schemas
 │   ├── services/
 │   │   ├── __init__.py
-│   │   ├── ticket.py        # Ticket business logic & state machine
-│   │   └── audit.py         # Audit log recording service
+│   │   ├── auth.py            # Password hashing, JWT management, user CRUD
+│   │   ├── ticket.py          # Ticket business logic & state machine
+│   │   └── audit.py           # Audit log recording service
 │   ├── repository/
 │   │   ├── __init__.py
-│   │   └── ticket.py        # SQLAlchemy data access for tickets
+│   │   └── ticket.py          # SQLAlchemy data access for tickets
 │   ├── models/
 │   │   ├── __init__.py
-│   │   └── ticket.py        # SQLAlchemy ORM tables
+│   │   ├── enums.py           # TicketState and UserRole enums
+│   │   ├── ticket.py          # SQLAlchemy ORM tables
+│   │   └── user.py            # SQLAlchemy user model
 │   └── db/
 │       ├── __init__.py
 │       ├── engine.py        # SQLAlchemy engine & session factory
@@ -159,6 +164,18 @@ The engine factory in `superticket/db/engine.py` will read the connection string
 | performed_by  | String   | Nullable                 |
 | timestamp     | DateTime | Default: now()           |
 
+**`User` Model:**
+| Column         | Type     | Constraints              |
+|----------------|----------|--------------------------|
+| id             | UUID     | Primary Key              |
+| email          | String   | Unique, Indexed, Not Null|
+| hashed_password| String   | Not Null                 |
+| full_name      | String   | Not Null                 |
+| role           | String   | Not Null, Default: "user"|
+| is_active      | Boolean  | Not Null, Default: True  |
+| created_at     | DateTime | Default: now()           |
+| updated_at     | DateTime | On Update: now()         |
+
 ---
 
 ## 5. State Machine Design
@@ -193,19 +210,31 @@ Base path: `/api/v1`
 
 ### Endpoints
 
-| Method | Path                  | Description                     |
-|--------|-----------------------|---------------------------------|
-| POST   | `/tickets`            | Create a new ticket             |
-| GET    | `/tickets`            | List tickets (paginated)        |
-| GET    | `/tickets/{id}`       | Get a specific ticket           |
-| PATCH  | `/tickets/{id}`       | Update ticket fields            |
-| POST   | `/tickets/{id}/transition` | Trigger a state change      |
-| GET    | `/tickets/{id}/audit` | Get the immutable audit log     |
+**Ticket Endpoints:**
+
+| Method | Path                  | Description                     | Auth |
+|--------|-----------------------|---------------------------------|------|
+| POST   | `/tickets`            | Create a new ticket             | Yes  |
+| GET    | `/tickets`            | List tickets (paginated)        | Yes  |
+| GET    | `/tickets/{id}`       | Get a specific ticket           | Yes  |
+| PATCH  | `/tickets/{id}`       | Update ticket fields            | Yes  |
+| POST   | `/tickets/{id}/transition` | Trigger a state change      | Yes  |
+| GET    | `/tickets/{id}/audit` | Get the immutable audit log     | Yes  |
+
+**Auth Endpoints:**
+
+| Method | Path                  | Description                     | Auth |
+|--------|-----------------------|---------------------------------|------|
+| POST   | `/auth/register`      | Register a new user             | No   |
+| POST   | `/auth/token`         | Login, return JWT access token  | No   |
+| GET    | `/auth/me`            | Get current user profile        | Yes  |
+
+All ticket endpoints require a valid JWT in the `Authorization: Bearer <token>` header. The `performed_by` field on audit logs is auto-populated from the authenticated user's email.
 
 ### Error Handling
 - `400 Bad Request`: Invalid state transition, Pydantic validation error.
 - `404 Not Found`: Ticket ID does not exist.
-- `500 Internal Server Error`: Unhandled exceptions (logged, not exposed).
+- `401 Unauthorized`: Missing or invalid JWT token.
 
 All errors follow a standard JSON structure:
 ```json
@@ -235,13 +264,14 @@ These features are intentionally out of scope for the current MVP to keep comple
 
 | Milestone | Version       | Feature                                      |
 |-----------|---------------|----------------------------------------------|
-| 2         | alpha.2       | User authentication (OAuth2 / SAML)          |
+| 2         | alpha.2       | Local DB user authentication                  |
 | 3         | alpha.3       | Web UI (Self-Service Portal, Agent Workspace)|
 | 4         | alpha.4       | LLM Triage Integration (OpenAI-compatible)   |
 | 5         | beta.1        | Email-to-Ticket Processing                   |
 | 6         | beta.2        | Webhook Subscriptions (Slack, Teams, Jira)   |
 | 7         | beta.3        | SLA Management Engine & Breach Alerts        |
 | 8         | 0.1.0-rc1     | Containerization (Docker)                    |
+| 9         | 0.1.0-rc2     | Enterprise SSO authentication (OAuth2 / SAML)|
 
 ---
 
@@ -253,6 +283,7 @@ Environment variables will be loaded via `pydantic-settings` from a `.env` file:
 DATABASE_URL=sqlite:///./superticket.db
 DEBUG=True
 APP_VERSION=0.1.0-alpha.1
+SECRET_KEY=your-secret-key-here
 ```
 
 This keeps secrets out of the codebase and makes the application 12-factor compliant.
@@ -282,3 +313,5 @@ This keeps secrets out of the codebase and makes the application 12-factor compl
 | 2026-05-10 | SQLite → PostgreSQL (Future)          | Zero-config MVP, flexibility via SQLAlchemy    |
 | 2026-05-10 | Custom State Machine in Service Layer | Business logic must be separated from DB layer |
 | 2026-05-10 | Pydantic v2                           | Performance, strict typing, FastAPI native     |
+| 2026-05-15 | Local DB auth (bcrypt + JWT)          | Simple, no external IdP dependency for MVP     |
+| 2026-05-15 | OAuth2/SAML deferred to rc2           | Enterprise SSO is a deployment concern, not core logic |

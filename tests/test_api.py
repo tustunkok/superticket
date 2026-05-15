@@ -1,5 +1,7 @@
 """Tests for FastAPI ticket endpoints."""
 
+from dataclasses import dataclass
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -9,13 +11,19 @@ from sqlalchemy.pool import StaticPool
 from superticket.db.base import Base
 from superticket.main import app
 
-# Ensure models are registered on Base.metadata before creating tables.
 from superticket.models import ticket  # noqa: F401
+from superticket.models import user  # noqa: F401
+
+
+@dataclass
+class _MockUser:
+    email: str = "testuser@example.com"
+    is_active: bool = True
 
 
 @pytest.fixture(scope="module")
 def client():
-    """Provide a TestClient with an in-memory database."""
+    """Provide a TestClient with an in-memory database and auth bypass."""
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -24,8 +32,7 @@ def client():
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     Base.metadata.create_all(bind=engine)
 
-    # Override the get_db dependency for testing
-    from superticket.core.dependencies import get_db
+    from superticket.core.dependencies import get_current_active_user, get_db
 
     def override_get_db():
         db = TestingSessionLocal()
@@ -34,7 +41,11 @@ def client():
         finally:
             db.close()
 
+    def override_get_current_active_user():
+        return _MockUser()
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_active_user] = override_get_current_active_user
 
     with TestClient(app) as c:
         yield c
@@ -82,7 +93,7 @@ class TestCreateTicket:
         r1 = client.post("/api/v1/tickets", json=payload)
         assert r1.status_code == 201
         r2 = client.post("/api/v1/tickets", json=payload)
-        assert r2.status_code == 409  # Integrity error from DB
+        assert r2.status_code == 409
 
 
 class TestGetTicket:
@@ -198,7 +209,7 @@ class TestTransitionTicket:
         )
         response = client.post(
             "/api/v1/tickets/INC-2026-035/transition",
-            json={"target_state": "assigned", "performed_by": "dispatcher"},
+            json={"target_state": "assigned"},
         )
         assert response.status_code == 200
         assert response.json()["state"] == "assigned"
@@ -252,7 +263,7 @@ class TestAuditLog:
         response = client.get("/api/v1/tickets/INC-2026-037/audit")
         assert response.status_code == 200
         logs = response.json()
-        assert len(logs) == 2  # created + state_transition
+        assert len(logs) == 2
         assert logs[0]["action"] == "created"
         assert logs[1]["action"] == "state_transition"
 

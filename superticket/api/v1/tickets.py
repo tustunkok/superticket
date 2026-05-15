@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from superticket.core.dependencies import get_db
+from superticket.core.dependencies import get_current_active_user, get_db
+from superticket.models.user import User
 from superticket.schemas.ticket import (
     AuditLogOut,
     TicketCreate,
@@ -19,10 +20,18 @@ router = APIRouter(prefix="/tickets", tags=["tickets"])
 
 
 @router.post("", response_model=TicketOut, status_code=status.HTTP_201_CREATED)
-def create_ticket(data: TicketCreate, db: Session = Depends(get_db)) -> TicketOut:
+def create_ticket(
+    data: TicketCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> TicketOut:
     """Create a new ticket."""
     try:
-        ticket = TicketService.create(session=db, **data.model_dump())
+        ticket = TicketService.create(
+            session=db,
+            performed_by=current_user.email,
+            **data.model_dump(),
+        )
     except IntegrityError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -32,7 +41,12 @@ def create_ticket(data: TicketCreate, db: Session = Depends(get_db)) -> TicketOu
 
 
 @router.get("", response_model=TicketListOut)
-def list_tickets(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)) -> TicketListOut:
+def list_tickets(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> TicketListOut:
     """List tickets with pagination."""
     items = TicketService.list_(db, skip=skip, limit=limit)
     total = TicketService.count(db)
@@ -40,7 +54,11 @@ def list_tickets(skip: int = 0, limit: int = 100, db: Session = Depends(get_db))
 
 
 @router.get("/{ticket_id}", response_model=TicketOut)
-def get_ticket(ticket_id: str, db: Session = Depends(get_db)) -> TicketOut:
+def get_ticket(
+    ticket_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> TicketOut:
     """Retrieve a single ticket by ID."""
     return TicketService.get(db, ticket_id)
 
@@ -50,11 +68,12 @@ def update_ticket(
     ticket_id: str,
     data: TicketUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
 ) -> TicketOut:
     """Update mutable ticket fields."""
     try:
         fields = {k: v for k, v in data.model_dump(exclude_unset=True).items() if v is not None}
-        return TicketService.update(db, ticket_id, **fields)
+        return TicketService.update(db, ticket_id, performed_by=current_user.email, **fields)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
@@ -64,18 +83,23 @@ def transition_ticket(
     ticket_id: str,
     data: TicketTransition,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
 ) -> TicketOut:
     """Trigger a state transition on a ticket."""
     return TicketService.transition_state(
         db,
         ticket_id,
         data.target_state,
-        performed_by=data.performed_by,
+        performed_by=current_user.email,
     )
 
 
 @router.get("/{ticket_id}/audit", response_model=list[AuditLogOut])
-def get_audit_log(ticket_id: str, db: Session = Depends(get_db)) -> list[AuditLogOut]:
+def get_audit_log(
+    ticket_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> list[AuditLogOut]:
     """Get the immutable audit log for a ticket."""
     ticket = TicketService.get(db, ticket_id)
     return ticket.audit_logs

@@ -16,3 +16,10 @@ class TicketNotFound(Exception):
     def __init__(self, ticket_id: str) -> None:
         super().__init__(f"Ticket '{ticket_id}' not found.")
         self.ticket_id = ticket_id
+
+
+class InvalidCredentials(Exception):
+    """Raised when authentication fails."""
+
+    def __init__(self) -> None:
+        super().__init__("Invalid email or password.")

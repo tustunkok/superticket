@@ -8,6 +8,7 @@ from alembic import context
 from superticket.core.config import settings
 from superticket.db.base import Base
 from superticket.models import ticket  # noqa: F401 – registers models on Base.metadata
+from superticket.models import user  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

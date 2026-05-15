@@ -13,3 +13,11 @@ class TicketState(str, Enum):
     PENDING_VENDOR = "pending_vendor"
     RESOLVED = "resolved"
     CLOSED = "closed"
+
+
+class UserRole(str, Enum):
+    """Authorization roles for users."""
+
+    USER = "user"
+    AGENT = "agent"
+    ADMIN = "admin"

@@ -7,6 +7,9 @@ from sqlalchemy.orm import sessionmaker
 from superticket.db.base import Base
 from superticket.db.engine import SessionLocal
 
+from superticket.models import ticket  # noqa: F401
+from superticket.models import user  # noqa: F401
+
 
 @pytest.fixture(scope="session")
 def engine():
