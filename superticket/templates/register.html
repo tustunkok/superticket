@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - SuperTicket</title>
+    <title>Register - SuperTicket</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -28,7 +28,7 @@
                     <div class="text-center mb-4">
                         <i class="bi bi-ticket-detailed display-4 text-primary"></i>
                         <h1 class="h3 mt-2 fw-bold">SuperTicket</h1>
-                        <p class="text-muted">Sign in to your account</p>
+                        <p class="text-muted">Create a new account</p>
                     </div>
 
                     {% if error %}
@@ -38,13 +38,21 @@
                     </div>
                     {% endif %}
 
-                    <form method="POST" action="/login">
+                    <form method="POST" action="/register">
+                        <div class="mb-3">
+                            <label for="full_name" class="form-label">Full Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                <input type="text" class="form-control" id="full_name" name="full_name"
+                                       placeholder="Jane Doe" required autofocus>
+                            </div>
+                        </div>
                         <div class="mb-3">
                             <label for="email" class="form-label">Email address</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-envelope"></i></span>
                                 <input type="email" class="form-control" id="email" name="email"
-                                       placeholder="you@example.com" required autofocus>
+                                       placeholder="you@example.com" required>
                             </div>
                         </div>
                         <div class="mb-4">
@@ -52,16 +60,16 @@
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-lock"></i></span>
                                 <input type="password" class="form-control" id="password" name="password"
-                                       placeholder="Enter your password" required>
+                                       placeholder="At least 6 characters" required minlength="6">
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
-                            <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                            <i class="bi bi-person-plus me-2"></i>Create Account
                         </button>
                     </form>
 
                     <p class="text-center text-muted mt-4 mb-0">
-                        <small>Don't have an account? <a href="/register">Register</a></small>
+                        <small>Already have an account? <a href="/login">Sign in</a></small>
                     </p>
                 </div>
             </div>

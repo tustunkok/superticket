@@ -268,13 +268,14 @@ We use semantic versioning with explicit stage suffixes:
 | 2         | alpha.2       | Local DB user authentication (bcrypt + JWT)  | 2026-05-15 |
 | 2.5       | alpha.2.x     | Ticket `description` field + Comment model   | 2026-05-15 |
 
+| 3         | alpha.3.x     | Web UI (Self-Service Portal, Agent Workspace)| 2026-05-16 |
+
 ### Future Milestones (Deferred)
 
 These features are intentionally out of scope for the current MVP to keep complexity low.
 
 | Milestone | Version       | Feature                                      |
 |-----------|---------------|----------------------------------------------|
-| 3         | alpha.3       | Web UI (Self-Service Portal, Agent Workspace)|
 | 4         | alpha.4       | LLM Triage Integration (OpenAI-compatible)   |
 | 5         | beta.1        | Email-to-Ticket Processing                   |
 | 6         | beta.2        | Webhook Subscriptions (Slack, Teams, Jira)   |
@@ -291,7 +292,7 @@ Environment variables will be loaded via `pydantic-settings` from a `.env` file:
 ```env
 DATABASE_URL=sqlite:///./superticket.db
 DEBUG=True
-APP_VERSION=0.1.0-alpha.2
+APP_VERSION=0.1.0-alpha.3.1
 SECRET_KEY=your-secret-key-here
 ```
 

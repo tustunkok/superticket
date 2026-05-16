@@ -55,6 +55,38 @@ def login_submit(
     return resp
 
 
+@router.get("/register")
+def register_page(request: Request, error: str = None):
+    """Render the registration form."""
+    return templates.TemplateResponse(
+        request,
+        "register.html",
+        {"error": error},
+    )
+
+
+@router.post("/register")
+def register_submit(
+    request: Request,
+    full_name: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(min_length=6),
+    db: Session = Depends(get_db),
+):
+    """Create a new user account and redirect to login."""
+    try:
+        AuthService.register_user(db, email=email, password=password, full_name=full_name)
+    except ValueError:
+        return templates.TemplateResponse(
+            request,
+            "register.html",
+            {"error": f"Email '{email}' is already registered."},
+            status_code=status.HTTP_409_CONFLICT,
+        )
+
+    return RedirectResponse(url="/login?error=Account+created.+Please+sign+in.", status_code=status.HTTP_303_SEE_OTHER)
+
+
 @router.get("/logout")
 def logout():
     """Clear the JWT cookie and redirect to login."""

@@ -14,7 +14,7 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./superticket.db"
     debug: bool = False
-    app_version: str = "0.1.0-alpha.1"
+    app_version: str = "0.1.0-alpha.3.1"
 
     secret_key: str = "insecure-dev-secret-change-in-production"
     algorithm: str = "HS256"

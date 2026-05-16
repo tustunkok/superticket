@@ -74,6 +74,12 @@ def agent_ticket_queue(
     )
 
 
+@router.get("/tickets/{ticket_id}")
+def agent_ticket_redirect(ticket_id: str):
+    """Redirect /agent/tickets/{id} to the workspace route."""
+    return RedirectResponse(url=f"/agent/tickets/{ticket_id}/work", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+
+
 @router.get("/tickets/{ticket_id}/work")
 def ticket_workspace(
     request: Request,
