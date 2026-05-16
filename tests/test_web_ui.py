@@ -234,6 +234,35 @@ class TestAgentViews:
         assert resp.status_code == 200
         assert "Workspace" in resp.text
 
+    def test_agent_workspace_shows_requester(self, agent_client):
+        """Test that agent workspace shows requester name and email."""
+        # Create a user first
+        agent_client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": "requester@example.com",
+                "password": "password123",
+                "full_name": "Requester User",
+            },
+        )
+        # Create a ticket with requester_id as email
+        agent_client.post(
+            "/api/v1/tickets",
+            json={
+                "id": "INC-REQ-001",
+                "requester_id": "requester@example.com",
+                "category": "Hardware",
+                "sub_category": "Laptop",
+                "item": "Screen",
+                "urgency": "high",
+                "impact": "individual",
+            },
+        )
+        resp = agent_client.get("/agent/tickets/INC-REQ-001/work")
+        assert resp.status_code == 200
+        assert "Requester User" in resp.text
+        assert "requester@example.com" in resp.text
+
     def test_agent_state_transition(self, agent_client):
         agent_client.post(
             "/api/v1/tickets",

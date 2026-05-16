@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 from typing import Any
+from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -9,11 +10,36 @@ from sqlalchemy.orm import Session
 from superticket.core.exceptions import TicketNotFound
 from superticket.models.enums import TicketState
 from superticket.models.ticket import AuditLog, Ticket
+from superticket.models.user import User
 from superticket.services.state_machine import transition
 
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _resolve_requester_id(session: Session, requester_id: str) -> str:
+    """Resolve requester_id to a UUID string if it's an email or UUID.
+
+    - If already a valid UUID, return as-is.
+    - If an email, look up the user and return their UUID.
+    - If neither, return the original value (backwards compatibility).
+    """
+    try:
+        uuid_obj = UUID(requester_id)
+        return str(uuid_obj)
+    except ValueError:
+        pass
+
+    # Might be an email - look up user
+    user = session.execute(
+        select(User).where(User.email == requester_id)
+    ).scalar_one_or_none()
+    if user:
+        return str(user.id)
+
+    # Return as-is if we can't resolve
+    return requester_id
 
 
 def _compute_priority(urgency: str, impact: str) -> str:
@@ -53,10 +79,13 @@ class TicketService:
         performed_by: str | None = None,
     ) -> Ticket:
         """Create a new ticket in the `NEW` state and log the creation."""
+        # Resolve requester_id to UUID if it's an email
+        resolved_requester_id = _resolve_requester_id(session, requester_id)
+
         computed_priority = priority or _compute_priority(urgency, impact)
         ticket = Ticket(
             id=id,
-            requester_id=requester_id,
+            requester_id=resolved_requester_id,
             category=category,
             sub_category=sub_category,
             item=item,

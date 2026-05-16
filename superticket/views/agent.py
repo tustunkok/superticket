@@ -2,7 +2,9 @@
 
 from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import RedirectResponse
+from sqlalchemy import select
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 from superticket.core.dependencies import get_current_active_user_from_cookie, get_db
 from superticket.core.exceptions import TicketClosed
@@ -96,6 +98,25 @@ def ticket_workspace(
     current_state = TicketState(ticket.state)
     transitions = valid_transitions(current_state)
 
+    # Resolve requester name and email
+    requester_name = ticket.requester_id
+    requester_email = ""
+    try:
+        requester = db.execute(
+            select(User).where(User.id == UUID(ticket.requester_id))
+        ).scalar_one_or_none()
+        if requester:
+            requester_name = requester.full_name
+            requester_email = requester.email
+    except ValueError:
+        # requester_id might be an email (backwards compatibility)
+        requester = db.execute(
+            select(User).where(User.email == ticket.requester_id)
+        ).scalar_one_or_none()
+        if requester:
+            requester_name = requester.full_name
+            requester_email = requester.email
+
     return templates.TemplateResponse(
         request,
         "agent/ticket_workspace.html",
@@ -106,6 +127,8 @@ def ticket_workspace(
             "audit_logs": audit_logs,
             "transitions": transitions,
             "error": request.query_params.get("error"),
+            "requester_name": requester_name,
+            "requester_email": requester_email,
         },
     )
 

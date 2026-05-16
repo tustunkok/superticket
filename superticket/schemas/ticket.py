@@ -1,10 +1,11 @@
 """Pydantic request & response DTOs for tickets."""
 
+import re
 import uuid
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from superticket.models.enums import TicketState
 

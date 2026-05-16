@@ -34,6 +34,10 @@
                             <input type="text" class="form-control form-control-sm" name="item" value="{{ ticket.item }}" required>
                         </div>
                         <div class="col-6">
+                            <label class="form-label small">Requester</label>
+                            <input type="text" class="form-control form-control-sm" value="{{ requester_name }} ({{ requester_email }})" disabled>
+                        </div>
+                        <div class="col-6">
                             <label class="form-label small">Priority (auto)</label>
                             <span class="badge badge-{{ ticket.priority | lower }} ms-1">{{ ticket.priority }}</span>
                         </div>
@@ -75,6 +79,10 @@
                     <div class="col-6">
                         <p class="mb-1 small text-muted">Item</p>
                         <p class="mb-1 fw-semibold">{{ ticket.item }}</p>
+                    </div>
+                    <div class="col-6">
+                        <p class="mb-1 small text-muted">Requester</p>
+                        <p class="mb-1 fw-semibold">{{ requester_name }} ({{ requester_email }})</p>
                     </div>
                     <div class="col-6">
                         <p class="mb-1 small text-muted">Urgency</p>

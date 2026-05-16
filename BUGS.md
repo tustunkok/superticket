@@ -56,16 +56,6 @@
 
 ---
 
-## Bug 8: Portal ticket filtering matches both UUID and email for requester_id (LOW)
-
-**Affected file:** `views/portal.py:34`
-
-**Current behavior:** `user_tickets = [t for t in all_tickets if t.requester_id == str(current_user.id) or t.requester_id == current_user.email]`. This dual match suggests `requester_id` may be stored differently depending on the creation path (UUID from web creation at line 78, or whatever value is sent via the API). This is fragile and could cause bugs.
-
-**Expected behavior:** `requester_id` should be uniformly stored as one canonical identifier everywhere, and the filtering should use a single consistent comparison.
-
----
-
 ## Bug 9: Password minimum length mismatch between API and web form (LOW)
 
 **Affected files:**
