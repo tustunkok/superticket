@@ -268,6 +268,8 @@ We use semantic versioning with explicit stage suffixes:
 | 2         | alpha.2       | Local DB user authentication (bcrypt + JWT)  | 2026-05-15 |
 | 2.5       | alpha.2.x     | Ticket `description` field + Comment model   | 2026-05-15 |
 | 3         | beta.1        | Web UI (Self-Service Portal, Agent Workspace) | 2026-05-16 |
+| 3.5       | beta.1.x     | Prevent comments on CLOSED tickets        | 2026-05-16 |
+| 3.6       | beta.1.x     | Admin user management interface         | 2026-05-16 |
 
 ### Future Milestones (Deferred)
 
@@ -310,7 +312,7 @@ This keeps secrets out of the codebase and makes the application 12-factor compl
 - **Fixtures**: `pytest-asyncio` for async service tests
 - **DB**: Session-scoped SQLite in-memory engine with function-scoped transaction rollback fixtures (`tests/conftest.py`)
 
-**Test Suite**: 69 tests covering the state machine, service layer, API endpoints, and ORM models.
+**Test Suite**: 151 tests covering the state machine, service layer, API endpoints, web UI routes, ORM models, authentication, and admin user management.
 
 ---
 
