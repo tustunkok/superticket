@@ -1,0 +1,18 @@
+<div>
+    {% for comment in comments %}
+    <div class="mb-3 {% if comment.is_internal %}comment-internal bg-light{% else %}comment-public{% endif %} p-3 rounded">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <strong>{{ comment.author_name }}</strong>
+            <div class="d-flex align-items-center gap-2">
+                {% if comment.is_internal %}
+                <span class="badge bg-warning text-dark">Internal</span>
+                {% endif %}
+                <small class="text-muted">{{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+            </div>
+        </div>
+        <p class="mb-0">{{ comment.content }}</p>
+    </div>
+    {% else %}
+    <p class="text-muted text-center py-3"><em>No comments yet.</em></p>
+    {% endfor %}
+</div>

@@ -48,3 +48,8 @@ def transition(current: TicketState, target: TicketState) -> TicketState:
     if target not in VALID_TRANSITIONS.get(current, set()):
         raise InvalidStateTransition(current.value, target.value)
     return target
+
+
+def valid_transitions(current: TicketState) -> list[TicketState]:
+    """Return a list of states that *current* may legally transition into."""
+    return list(VALID_TRANSITIONS.get(current, set()))

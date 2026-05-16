@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Workspace: {{ ticket.id }} - SuperTicket{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0"><i class="bi bi-tools me-2"></i>Workspace: <span class="text-primary">{{ ticket.id }}</span></h2>
+    <a href="/agent/tickets" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back to Queue</a>
+</div>
+
+<div class="row">
+    <div class="col-lg-4 mb-4 mb-lg-0">
+        <div class="card st-card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-info-circle me-1"></i>Details &amp; Triage</span>
+                {% if ticket.state == 'triage' %}
+                <span class="badge bg-warning text-dark">Needs Review</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if ticket.state == 'triage' %}
+                <form method="POST" action="/agent/tickets/{{ ticket.id }}/triage">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small">Category</label>
+                            <input type="text" class="form-control form-control-sm" name="category" value="{{ ticket.category }}" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Sub-Category</label>
+                            <input type="text" class="form-control form-control-sm" name="sub_category" value="{{ ticket.sub_category }}" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Item</label>
+                            <input type="text" class="form-control form-control-sm" name="item" value="{{ ticket.item }}" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Priority (auto)</label>
+                            <span class="badge badge-{{ ticket.priority | lower }} ms-1">{{ ticket.priority }}</span>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Urgency</label>
+                            <select class="form-select form-select-sm" name="urgency" required>
+                                <option value="low" {% if ticket.urgency == 'low' %}selected{% endif %}>Low</option>
+                                <option value="medium" {% if ticket.urgency == 'medium' %}selected{% endif %}>Medium</option>
+                                <option value="high" {% if ticket.urgency == 'high' %}selected{% endif %}>High</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Impact</label>
+                            <select class="form-select form-select-sm" name="impact" required>
+                                <option value="individual" {% if ticket.impact == 'individual' %}selected{% endif %}>Individual</option>
+                                <option value="dept" {% if ticket.impact == 'dept' %}selected{% endif %}>Department</option>
+                                <option value="org" {% if ticket.impact == 'org' %}selected{% endif %}>Organization</option>
+                            </select>
+                        </div>
+                    </div>
+                    {% if ticket.description %}
+                    <p class="mb-1 small text-muted">Description</p>
+                    <p class="mb-2 small">{{ ticket.description }}</p>
+                    {% endif %}
+                    <button type="submit" class="btn btn-success btn-sm w-100">
+                        <i class="bi bi-check-lg me-1"></i>Confirm &amp; Assign
+                    </button>
+                </form>
+                {% else %}
+                <div class="row g-2">
+                    <div class="col-6">
+                        <p class="mb-1 small text-muted">Category</p>
+                        <p class="mb-1 fw-semibold">{{ ticket.category }}</p>
+                    </div>
+                    <div class="col-6">
+                        <p class="mb-1 small text-muted">Sub-Category</p>
+                        <p class="mb-1 fw-semibold">{{ ticket.sub_category }}</p>
+                    </div>
+                    <div class="col-6">
+                        <p class="mb-1 small text-muted">Item</p>
+                        <p class="mb-1 fw-semibold">{{ ticket.item }}</p>
+                    </div>
+                    <div class="col-6">
+                        <p class="mb-1 small text-muted">Urgency</p>
+                        <p class="mb-1 fw-semibold text-capitalize">{{ ticket.urgency }}</p>
+                    </div>
+                    <div class="col-6">
+                        <p class="mb-1 small text-muted">Impact</p>
+                        <p class="mb-1 fw-semibold text-capitalize">{{ ticket.impact }}</p>
+                    </div>
+                    <div class="col-6">
+                        <p class="mb-1 small text-muted">Priority</p>
+                        <span class="badge badge-{{ ticket.priority | lower }}">{{ ticket.priority }}</span>
+                    </div>
+                </div>
+                {% if ticket.description %}
+                <hr>
+                <p class="mb-1 small text-muted">Description</p>
+                <p class="mb-0">{{ ticket.description }}</p>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card st-card mb-3">
+            <div class="card-header"><i class="bi bi-arrow-left-right me-1"></i>State Transitions</div>
+            <div class="card-body">
+                {% if transitions %}
+                <div class="d-flex flex-wrap gap-2">
+                    {% for ts in transitions %}
+                    <form method="POST" action="/agent/tickets/{{ ticket.id }}/transition">
+                        <input type="hidden" name="target_state" value="{{ ts.value }}">
+                        <button type="submit" class="btn btn-outline-primary btn-sm"><i class="bi bi-arrow-right me-1"></i>{{ ts.value }}</button>
+                    </form>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted mb-0"><em>No valid transitions from current state.</em></p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card st-card">
+            <div class="card-header"><i class="bi bi-journal-text me-1"></i>Audit Log</div>
+            <div class="card-body p-0">
+                {% include 'partials/audit_log.html' with context %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5 mb-4 mb-lg-0">
+        <div class="card st-card">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-chat-dots"></i> Comments
+                <span class="badge bg-light text-dark ms-1">{{ comments | length }}</span>
+            </div>
+            <div class="card-body">
+                <div id="comments">
+                    {% include 'partials/comment_thread.html' with context %}
+                </div>
+                <hr>
+                <form method="POST" action="/agent/tickets/{{ ticket.id }}/comments">
+                    <label for="comment-content" class="form-label small">Reply</label>
+                    <textarea class="form-control mb-2" id="comment-content" name="content" rows="3" placeholder="Write a reply..." required></textarea>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="is_internal" value="true" id="internal-check">
+                            <label class="form-check-label small" for="internal-check">Internal only</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-send me-1"></i>Post</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3">
+        <div class="card st-card">
+            <div class="card-header"><i class="bi bi-book me-1"></i>Knowledge Base</div>
+            <div class="card-body">
+                <div id="kb-sidecar"
+                     hx-get="/api/v1/kb/search?category={{ ticket.category }}&sub_category={{ ticket.sub_category }}"
+                     hx-trigger="load">
+                    <p class="text-muted mb-0"><em>Loading relevant articles...</em></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

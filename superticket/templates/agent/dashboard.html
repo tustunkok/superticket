@@ -1,0 +1,67 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="bi bi-headset me-2"></i>Ticket Queue</h2>
+    <span class="badge bg-light text-dark fs-6">{{ total }} total</span>
+</div>
+
+<div class="card st-card mb-4">
+    <div class="card-body">
+        <form method="GET" action="/agent/tickets" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label for="filter-state" class="form-label small">State</label>
+                <select class="form-select form-select-sm" id="filter-state" name="state">
+                    <option value="">All States</option>
+                    <option value="new" {{ 'selected' if filter_state == 'new' else '' }}>New</option>
+                    <option value="triage" {{ 'selected' if filter_state == 'triage' else '' }}>Triage</option>
+                    <option value="assigned" {{ 'selected' if filter_state == 'assigned' else '' }}>Assigned</option>
+                    <option value="in_progress" {{ 'selected' if filter_state == 'in_progress' else '' }}>In Progress</option>
+                    <option value="pending_vendor" {{ 'selected' if filter_state == 'pending_vendor' else '' }}>Pending Vendor</option>
+                    <option value="resolved" {{ 'selected' if filter_state == 'resolved' else '' }}>Resolved</option>
+                    <option value="closed" {{ 'selected' if filter_state == 'closed' else '' }}>Closed</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="filter-priority" class="form-label small">Priority</label>
+                <select class="form-select form-select-sm" id="filter-priority" name="priority">
+                    <option value="">All Priorities</option>
+                    <option value="P1" {{ 'selected' if filter_priority == 'P1' else '' }}>P1 - Critical</option>
+                    <option value="P2" {{ 'selected' if filter_priority == 'P2' else '' }}>P2 - High</option>
+                    <option value="P3" {{ 'selected' if filter_priority == 'P3' else '' }}>P3 - Medium</option>
+                    <option value="P4" {{ 'selected' if filter_priority == 'P4' else '' }}>P4 - Low</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="filter-assigned" class="form-label small">Assigned</label>
+                <select class="form-select form-select-sm" id="filter-assigned" name="assigned_to">
+                    <option value="">Any</option>
+                    <option value="unassigned" {{ 'selected' if filter_assigned == 'unassigned' else '' }}>Unassigned</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-funnel me-1"></i>Filter</button>
+                <a href="/agent/tickets" class="btn btn-outline-secondary btn-sm">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card st-card">
+    <div class="card-body p-0">
+        {% set ticket_url_prefix = '/agent/tickets' %}
+        {% include 'partials/ticket_list.html' with context %}
+    </div>
+</div>
+
+<nav class="mt-3">
+    <ul class="pagination justify-content-center">
+        {% if skip > 0 %}
+        <li class="page-item"><a class="page-link" href="/agent/tickets?skip={{ skip - limit }}&limit={{ limit }}&state={{ filter_state or '' }}&priority={{ filter_priority or '' }}"><i class="bi bi-chevron-left"></i> Previous</a></li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link"><i class="bi bi-chevron-left"></i> Previous</span></li>
+        {% endif %}
+        {% if skip + limit < total %}
+        <li class="page-item"><a class="page-link" href="/agent/tickets?skip={{ skip + limit }}&limit={{ limit }}&state={{ filter_state or '' }}&priority={{ filter_priority or '' }}">Next <i class="bi bi-chevron-right"></i></a></li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">Next <i class="bi bi-chevron-right"></i></span></li>
+        {% endif %}
+    </ul>
+</nav>

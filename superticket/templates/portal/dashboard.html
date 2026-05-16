@@ -1,0 +1,57 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="bi bi-inbox me-2"></i>My Tickets</h2>
+    <a href="/portal/tickets/new" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>New Ticket</a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="st-stat-card">
+            <div class="st-stat-value text-primary-emphasis">{{ tickets | length }}</div>
+            <div class="st-stat-label">Total</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="st-stat-card">
+            <div class="st-stat-value text-warning-emphasis">{{ tickets | selectattr('state', 'in', ['new', 'triage', 'assigned', 'in_progress', 'pending_vendor']) | list | length }}</div>
+            <div class="st-stat-label">Open</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="st-stat-card">
+            <div class="st-stat-value text-success-emphasis">{{ tickets | selectattr('state', 'equalto', 'resolved') | list | length }}</div>
+            <div class="st-stat-label">Resolved</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="st-stat-card">
+            <div class="st-stat-value text-secondary-emphasis">{{ tickets | selectattr('state', 'equalto', 'closed') | list | length }}</div>
+            <div class="st-stat-label">Closed</div>
+        </div>
+    </div>
+</div>
+
+<div class="card st-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">All Tickets</span>
+        <span class="badge bg-light text-dark">{{ total }} total</span>
+    </div>
+    <div class="card-body p-0">
+        {% set ticket_url_prefix = '/portal/tickets' %}
+        {% include 'partials/ticket_list.html' with context %}
+    </div>
+</div>
+
+<nav class="mt-3">
+    <ul class="pagination justify-content-center">
+        {% if skip > 0 %}
+        <li class="page-item"><a class="page-link" href="/portal/?skip={{ skip - limit }}&limit={{ limit }}"><i class="bi bi-chevron-left"></i> Previous</a></li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link"><i class="bi bi-chevron-left"></i> Previous</span></li>
+        {% endif %}
+        {% if skip + limit < total %}
+        <li class="page-item"><a class="page-link" href="/portal/?skip={{ skip + limit }}&limit={{ limit }}">Next <i class="bi bi-chevron-right"></i></a></li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">Next <i class="bi bi-chevron-right"></i></span></li>
+        {% endif %}
+    </ul>
+</nav>

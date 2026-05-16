@@ -1,0 +1,34 @@
+<div class="table-responsive">
+    <table class="table table-sm table-bordered small">
+        <thead class="table-light">
+            <tr>
+                <th>Timestamp</th>
+                <th>Action</th>
+                <th>Details</th>
+                <th>By</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in audit_logs %}
+            <tr>
+                <td class="text-nowrap">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td><span class="fw-semibold">{{ log.action }}</span></td>
+                <td>
+                    {% if log.old_value %}
+                        {% for key, value in log.old_value.items() %}
+                            <span class="badge bg-light text-dark me-1 mb-1">{{ key }}: {{ value }} <i class="bi bi-arrow-right"></i> {{ log.new_value[key] }}</span>
+                        {% endfor %}
+                    {% else %}
+                        <span class="badge bg-light text-dark">{{ log.new_value | tojson }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ log.performed_by or 'System' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" class="text-center text-muted py-3">No audit entries.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

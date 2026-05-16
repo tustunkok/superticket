@@ -13,6 +13,7 @@ from superticket.main import app
 
 from superticket.models import ticket  # noqa: F401
 from superticket.models import user  # noqa: F401
+from superticket.models import comment  # noqa: F401
 
 
 @dataclass
@@ -80,6 +81,43 @@ class TestCreateTicket:
         assert data["id"] == "INC-2026-030"
         assert data["state"] == "new"
 
+    def test_create_ticket_with_description(self, client):
+        response = client.post(
+            "/api/v1/tickets",
+            json={
+                "id": "INC-2026-060",
+                "requester_id": "user-60",
+                "category": "Hardware",
+                "sub_category": "Laptop",
+                "item": "Keyboard",
+                "urgency": "medium",
+                "impact": "individual",
+                "description": "Keyboard keys are sticking",
+            },
+        )
+        assert response.status_code == 201
+        data = response.json()
+        assert data["id"] == "INC-2026-060"
+        assert data["description"] == "Keyboard keys are sticking"
+
+    def test_create_ticket_without_description(self, client):
+        response = client.post(
+            "/api/v1/tickets",
+            json={
+                "id": "INC-2026-061",
+                "requester_id": "user-61",
+                "category": "Software",
+                "sub_category": "Bug",
+                "item": "Crash",
+                "urgency": "low",
+                "impact": "dept",
+            },
+        )
+        assert response.status_code == 201
+        data = response.json()
+        assert data["id"] == "INC-2026-061"
+        assert data["description"] is None
+
     def test_create_duplicate_id(self, client):
         payload = {
             "id": "INC-2026-031",
@@ -113,6 +151,26 @@ class TestGetTicket:
         response = client.get("/api/v1/tickets/INC-2026-032")
         assert response.status_code == 200
         assert response.json()["id"] == "INC-2026-032"
+
+    def test_get_existing_with_description(self, client):
+        client.post(
+            "/api/v1/tickets",
+            json={
+                "id": "INC-2026-062",
+                "requester_id": "user-62",
+                "category": "Hardware",
+                "sub_category": "Laptop",
+                "item": "Screen",
+                "urgency": "high",
+                "impact": "individual",
+                "description": "Screen flickers intermittently",
+            },
+        )
+        response = client.get("/api/v1/tickets/INC-2026-062")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == "INC-2026-062"
+        assert data["description"] == "Screen flickers intermittently"
 
     def test_get_missing(self, client):
         response = client.get("/api/v1/tickets/INC-NOPE")
@@ -191,6 +249,28 @@ class TestUpdateTicket:
             json={"category": "Hardware"},
         )
         assert response.status_code == 404
+
+    def test_update_description(self, client):
+        client.post(
+            "/api/v1/tickets",
+            json={
+                "id": "INC-2026-063",
+                "requester_id": "user-63",
+                "category": "Access",
+                "sub_category": "Account",
+                "item": "Unlock",
+                "urgency": "high",
+                "impact": "individual",
+                "description": "Original description",
+            },
+        )
+        response = client.patch(
+            "/api/v1/tickets/INC-2026-063",
+            json={"description": "Updated description"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["description"] == "Updated description"
 
 
 class TestTransitionTicket:

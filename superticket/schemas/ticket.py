@@ -32,6 +32,7 @@ class TicketCreate(BaseModel):
     item: str
     urgency: str
     impact: str
+    description: str | None = None
 
 
 class TicketUpdate(BaseModel):
@@ -45,6 +46,7 @@ class TicketUpdate(BaseModel):
     urgency: str | None = None
     impact: str | None = None
     priority: str | None = None
+    description: str | None = None
 
 
 class TicketOut(BaseModel):
@@ -61,6 +63,7 @@ class TicketOut(BaseModel):
     impact: str
     priority: str
     state: str
+    description: str | None = None
     created_at: datetime
     updated_at: datetime
 

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Ticket {{ ticket.id }} - SuperTicket{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="bi bi-ticket-detailed me-2"></i>Ticket {{ ticket.id }}</h2>
+    <a href="/portal/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back to My Tickets</a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        {% include 'partials/ticket_detail.html' with context %}
+
+        <div class="card st-card">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-chat-dots"></i>
+                <span class="fw-semibold">Comments</span>
+                <span class="badge bg-light text-dark ms-1">{{ comments | length }}</span>
+            </div>
+            <div class="card-body">
+                {% include 'partials/comment_thread.html' with context %}
+                <hr>
+                <form method="POST" action="/portal/tickets/{{ ticket.id }}/comments">
+                    <label for="comment-content" class="form-label">Add Comment</label>
+                    <textarea class="form-control mb-2" id="comment-content" name="content" rows="3" placeholder="Write your reply..." required></textarea>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i>Post Comment</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

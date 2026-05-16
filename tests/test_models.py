@@ -2,7 +2,6 @@
 
 from datetime import datetime
 
-import pytest
 from sqlalchemy import select
 
 from superticket.models.enums import TicketState

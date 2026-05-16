@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, DateTime, ForeignKey, String, Text
+from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -12,7 +12,7 @@ from superticket.db.base import Base
 from superticket.models.enums import TicketState
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Relationship
+    from superticket.models.comment import Comment
 
 
 def _utc_now() -> datetime:
@@ -33,6 +33,7 @@ class Ticket(Base):
     impact: Mapped[str] = mapped_column(String, nullable=False)
     priority: Mapped[str] = mapped_column(String, nullable=False)
     state: Mapped[str] = mapped_column(String, nullable=False, default=TicketState.NEW.value)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utc_now, onupdate=_utc_now
@@ -40,6 +41,9 @@ class Ticket(Base):
 
     audit_logs: Mapped[list["AuditLog"]] = relationship(
         "AuditLog", back_populates="ticket", cascade="all, delete-orphan", lazy="selectin"
+    )
+    comments: Mapped[list["Comment"]] = relationship(
+        "Comment", back_populates="ticket", cascade="all, delete-orphan", lazy="selectin", order_by="Comment.created_at.desc()"
     )
 
     def __repr__(self) -> str:

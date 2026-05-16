@@ -6,7 +6,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from superticket.core.exceptions import InvalidStateTransition, TicketNotFound
+from superticket.core.exceptions import TicketNotFound
 from superticket.models.enums import TicketState
 from superticket.models.ticket import AuditLog, Ticket
 from superticket.services.state_machine import transition
@@ -49,6 +49,7 @@ class TicketService:
         urgency: str,
         impact: str,
         priority: str | None = None,
+        description: str | None = None,
         performed_by: str | None = None,
     ) -> Ticket:
         """Create a new ticket in the `NEW` state and log the creation."""
@@ -63,6 +64,7 @@ class TicketService:
             impact=impact,
             priority=computed_priority,
             state=TicketState.NEW.value,
+            description=description,
         )
         session.add(ticket)
         session.flush()
@@ -81,6 +83,7 @@ class TicketService:
                 "impact": ticket.impact,
                 "priority": ticket.priority,
                 "state": ticket.state,
+                "description": ticket.description,
             },
             performed_by=performed_by,
         )
@@ -128,6 +131,7 @@ class TicketService:
             "urgency",
             "impact",
             "priority",
+            "description",
         }
         changes: dict[str, Any] = {}
         for key, value in fields.items():

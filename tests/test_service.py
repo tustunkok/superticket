@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from superticket.core.exceptions import InvalidStateTransition, TicketNotFound
 from superticket.models.enums import TicketState
-from superticket.models.ticket import AuditLog, Ticket
+from superticket.models.ticket import AuditLog
 from superticket.services.ticket import TicketService
 
 
@@ -41,6 +41,51 @@ class TestCreate:
         assert len(logs) == 1
         assert logs[0].action == "created"
         assert logs[0].new_value["state"] == TicketState.NEW.value
+
+    def test_create_ticket_with_description(self, db_session):
+        ticket = TicketService.create(
+            session=db_session,
+            id="INC-2026-050",
+            requester_id="user-50",
+            category="Hardware",
+            sub_category="Laptop",
+            item="Keyboard",
+            urgency="medium",
+            impact="individual",
+            description="The keyboard keys are sticking",
+        )
+        assert ticket.description == "The keyboard keys are sticking"
+
+    def test_create_ticket_without_description(self, db_session):
+        ticket = TicketService.create(
+            session=db_session,
+            id="INC-2026-051",
+            requester_id="user-51",
+            category="Hardware",
+            sub_category="Laptop",
+            item="Screen",
+            urgency="high",
+            impact="individual",
+        )
+        assert ticket.description is None
+
+    def test_create_audit_log_includes_description(self, db_session):
+        TicketService.create(
+            session=db_session,
+            id="INC-2026-052",
+            requester_id="user-52",
+            category="Software",
+            sub_category="Bug",
+            item="Crash",
+            urgency="high",
+            impact="dept",
+            description="Application crashes on startup",
+        )
+        logs = db_session.execute(
+            select(AuditLog).where(AuditLog.ticket_id == "INC-2026-052")
+        ).scalars().all()
+        assert len(logs) == 1
+        assert logs[0].new_value["description"] == "Application crashes on startup"
 
 
 class TestGet:
@@ -184,6 +229,73 @@ class TestUpdate:
             .where(AuditLog.action == "updated")
         ).scalars().all()
         assert len(logs) == 0
+
+    def test_update_description(self, db_session):
+        TicketService.create(
+            session=db_session,
+            id="INC-2026-053",
+            requester_id="user-53",
+            category="Misc",
+            sub_category="Other",
+            item="General",
+            urgency="low",
+            impact="individual",
+            description="Initial description",
+        )
+        updated = TicketService.update(
+            db_session,
+            "INC-2026-053",
+            performed_by="admin-3",
+            description="Updated description",
+        )
+        assert updated.description == "Updated description"
+
+    def test_update_description_audit_log(self, db_session):
+        TicketService.create(
+            session=db_session,
+            id="INC-2026-054",
+            requester_id="user-54",
+            category="Misc",
+            sub_category="Other",
+            item="General",
+            urgency="low",
+            impact="individual",
+            description="Original description",
+        )
+        TicketService.update(
+            db_session,
+            "INC-2026-054",
+            performed_by="admin-4",
+            description="New description",
+        )
+        logs = db_session.execute(
+            select(AuditLog)
+            .where(AuditLog.ticket_id == "INC-2026-054")
+            .where(AuditLog.action == "updated")
+        ).scalars().all()
+        assert len(logs) == 1
+        assert logs[0].old_value == {"description": "Original description"}
+        assert logs[0].new_value == {"description": "New description"}
+        assert logs[0].performed_by == "admin-4"
+
+    def test_update_description_to_none(self, db_session):
+        TicketService.create(
+            session=db_session,
+            id="INC-2026-055",
+            requester_id="user-55",
+            category="Misc",
+            sub_category="Other",
+            item="General",
+            urgency="low",
+            impact="individual",
+            description="Will be cleared",
+        )
+        updated = TicketService.update(
+            db_session,
+            "INC-2026-055",
+            description=None,
+        )
+        assert updated.description is None
 
 
 class TestTransitionState:
