@@ -23,3 +23,11 @@ class InvalidCredentials(Exception):
 
     def __init__(self) -> None:
         super().__init__("Invalid email or password.")
+
+
+class TicketClosed(Exception):
+    """Raised when attempting to comment on a closed ticket."""
+
+    def __init__(self, ticket_id: str) -> None:
+        super().__init__(f"Ticket '{ticket_id}' is closed. No further comments allowed.")
+        self.ticket_id = ticket_id

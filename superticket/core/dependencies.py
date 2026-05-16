@@ -9,6 +9,7 @@ from jose import JWTError
 from sqlalchemy.orm import Session
 
 from superticket.db.engine import SessionLocal
+from superticket.models.enums import UserRole
 from superticket.models.user import User
 from superticket.services.auth import AuthService, decode_access_token
 
@@ -91,5 +92,29 @@ def get_current_active_user_from_cookie(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user account.",
+        )
+    return current_user
+
+
+def require_admin(
+    current_user: User = Depends(get_current_active_user),
+) -> User:
+    """Require an authenticated, active admin user (API)."""
+    if current_user.role != UserRole.ADMIN.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required.",
+        )
+    return current_user
+
+
+def require_admin_cookie(
+    current_user: User = Depends(get_current_active_user_from_cookie),
+) -> User:
+    """Require an authenticated, active admin user (cookie-based)."""
+    if current_user.role != UserRole.ADMIN.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required.",
         )
     return current_user

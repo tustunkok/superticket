@@ -21,7 +21,6 @@ def register(data: UserCreate, db: Session = Depends(get_db)) -> UserOut:
             email=data.email,
             password=data.password,
             full_name=data.full_name,
-            role=data.role.value if data.role else None,
         )
     except ValueError as exc:
         raise HTTPException(

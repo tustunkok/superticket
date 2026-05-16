@@ -1,32 +1,5 @@
 # Known Bugs
 
-## Bug 1: No admin user management interface (HIGH)
-
-**Affected area:** Admin role, user management
-
-**Current behavior:** The `admin` role is defined in `models/enums.py:18-23` and an admin user is seeded at startup, but no admin-only routes or UI exists for listing, editing, or deactivating users. Additionally, the unauthenticated `POST /api/v1/auth/register` endpoint accepts a `role` field from the request body (`schemas/user.py:17`), allowing anyone to register as `admin` by sending `"role": "admin"` in the JSON body. The test at `tests/test_auth_api.py:94-105` explicitly validates this and expects `201`.
-
-**Expected behavior:**
-- An admin-only page (e.g., `/admin/users`) to list all registered users with options to change roles, activate/deactivate accounts, and delete users.
-- The `UserCreate` schema should either remove the `role` field entirely (always defaulting to `"user"`) or the admin user management API should be the only path to set non-user roles.
-
----
-
-## Bug 2: Comments can be added to CLOSED tickets (HIGH)
-
-**Affected routes:**
-- `POST /portal/tickets/{ticket_id}/comments` (`views/portal.py:127-144`)
-- `POST /agent/tickets/{ticket_id}/comments` (`views/agent.py:111-132`)
-- `POST /api/v1/tickets/{ticket_id}/comments` (`api/v1/comments.py:15-33`)
-
-**Current behavior:** `CommentService.create` (`services/comment.py:15-37`) only checks that the ticket exists (line 24-26), not its state. The state machine (`services/state_machine.py:31`) defines `CLOSED` as a terminal state with no valid transitions, but this is not enforced for comment creation. Users and agents can continue adding comments indefinitely on closed tickets.
-
-**Expected behavior:** `CommentService.create` (or each route) should check `ticket.state == TicketState.CLOSED.value` and reject the comment with an appropriate error. On the web side, the comment form in `portal/ticket_detail.html:24-28` should be conditionally hidden when the ticket is CLOSED.
-
-**Related:** Web comment routes don't catch domain exceptions (`TicketNotFound`, etc.) — a browser user would see raw JSON instead of an error page.
-
----
-
 ## Bug 3: Navbar logo redirects to /login for authenticated users (MEDIUM)
 
 **Affected files:**

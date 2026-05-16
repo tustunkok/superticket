@@ -3,8 +3,9 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from superticket.core.exceptions import TicketNotFound
+from superticket.core.exceptions import TicketClosed, TicketNotFound
 from superticket.models.comment import Comment
+from superticket.models.enums import TicketState
 from superticket.models.ticket import Ticket
 
 
@@ -24,6 +25,8 @@ class CommentService:
         ticket = session.execute(select(Ticket).where(Ticket.id == ticket_id)).scalar_one_or_none()
         if ticket is None:
             raise TicketNotFound(ticket_id)
+        if ticket.state == TicketState.CLOSED.value:
+            raise TicketClosed(ticket_id)
 
         comment = Comment(
             ticket_id=ticket_id,

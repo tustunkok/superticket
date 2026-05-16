@@ -5,6 +5,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from superticket.core.dependencies import get_current_active_user_from_cookie, get_db
+from superticket.core.exceptions import TicketClosed
 from superticket.models.enums import TicketState
 from superticket.models.user import User
 from superticket.services.comment import CommentService
@@ -104,6 +105,7 @@ def ticket_workspace(
             "comments": comments,
             "audit_logs": audit_logs,
             "transitions": transitions,
+            "error": request.query_params.get("error"),
         },
     )
 
@@ -118,14 +120,20 @@ def add_agent_comment(
     current_user: User = Depends(get_current_active_user_from_cookie),
 ):
     """Add a comment from agent (public or internal)."""
-    CommentService.create(
-        session=db,
-        ticket_id=ticket_id,
-        author_id=current_user.id,
-        author_name=current_user.full_name,
-        content=content,
-        is_internal=is_internal,
-    )
+    try:
+        CommentService.create(
+            session=db,
+            ticket_id=ticket_id,
+            author_id=current_user.id,
+            author_name=current_user.full_name,
+            content=content,
+            is_internal=is_internal,
+        )
+    except TicketClosed:
+        return RedirectResponse(
+            url=f"/agent/tickets/{ticket_id}/work?error=closed",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
     return RedirectResponse(
         url=f"/agent/tickets/{ticket_id}/work",
         status_code=status.HTTP_303_SEE_OTHER,

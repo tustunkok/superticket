@@ -20,12 +20,24 @@
             </div>
             <div class="card-body">
                 {% include 'partials/comment_thread.html' with context %}
+                {% if error == 'closed' %}
+                <div class="alert alert-warning d-flex align-items-center" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <div>Cannot add comments to a closed ticket.</div>
+                </div>
+                {% endif %}
+                {% if ticket.state != 'closed' %}
                 <hr>
                 <form method="POST" action="/portal/tickets/{{ ticket.id }}/comments">
                     <label for="comment-content" class="form-label">Add Comment</label>
                     <textarea class="form-control mb-2" id="comment-content" name="content" rows="3" placeholder="Write your reply..." required></textarea>
                     <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i>Post Comment</button>
                 </form>
+                {% else %}
+                <div class="alert alert-secondary" role="alert">
+                    <i class="bi bi-lock-fill me-1"></i>This ticket is closed. No further comments can be added.
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

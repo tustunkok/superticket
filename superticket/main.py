@@ -13,11 +13,11 @@ from superticket.api.v1.auth import router as api_auth_router
 from superticket.api.v1.comments import router as comments_router
 from superticket.api.v1.tickets import router as tickets_router
 from superticket.core.config import settings
-from superticket.core.exceptions import InvalidStateTransition, TicketNotFound
+from superticket.core.exceptions import InvalidStateTransition, TicketClosed, TicketNotFound
 from superticket.db.engine import init_db, SessionLocal
 from superticket.models.user import User
 from superticket.services.auth import hash_password
-from superticket.views import agent_router, auth_router as web_auth_router, kb_router, portal_router
+from superticket.views import admin_router, agent_router, auth_router as web_auth_router, kb_router, portal_router
 
 
 @asynccontextmanager
@@ -83,6 +83,7 @@ app.include_router(kb_router, prefix="/api/v1")
 app.include_router(web_auth_router)
 app.include_router(portal_router)
 app.include_router(agent_router)
+app.include_router(admin_router)
 
 
 @app.exception_handler(TicketNotFound)
@@ -98,6 +99,14 @@ async def invalid_state_transition_handler(request, exc: InvalidStateTransition)
     return JSONResponse(
         status_code=400,
         content={"detail": str(exc), "code": "INVALID_STATE_TRANSITION"},
+    )
+
+
+@app.exception_handler(TicketClosed)
+async def ticket_closed_handler(request, exc: TicketClosed):
+    return JSONResponse(
+        status_code=403,
+        content={"detail": str(exc), "code": "TICKET_CLOSED"},
     )
 
 

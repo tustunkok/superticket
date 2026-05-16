@@ -4,7 +4,8 @@ import uuid
 
 import pytest
 
-from superticket.core.exceptions import TicketNotFound
+from superticket.core.exceptions import TicketClosed, TicketNotFound
+from superticket.models.enums import TicketState
 from superticket.services.comment import CommentService
 from superticket.services.ticket import TicketService
 
@@ -64,6 +65,33 @@ class TestCreateComment:
                 content="Should fail",
             )
         assert "INC-NOPE" in str(exc_info.value)
+
+    def test_create_comment_on_closed_ticket_raises(self, db_session):
+        TicketService.create(
+            session=db_session,
+            id="INC-2026-C07",
+            requester_id="user-c07",
+            category="Hardware",
+            sub_category="Laptop",
+            item="Screen",
+            urgency="high",
+            impact="individual",
+        )
+        # Transition to CLOSED: NEW -> ASSIGNED -> IN_PROGRESS -> RESOLVED -> CLOSED
+        TicketService.transition_state(db_session, "INC-2026-C07", TicketState.ASSIGNED, performed_by="test")
+        TicketService.transition_state(db_session, "INC-2026-C07", TicketState.IN_PROGRESS, performed_by="test")
+        TicketService.transition_state(db_session, "INC-2026-C07", TicketState.RESOLVED, performed_by="test")
+        TicketService.transition_state(db_session, "INC-2026-C07", TicketState.CLOSED, performed_by="test")
+
+        with pytest.raises(TicketClosed) as exc_info:
+            CommentService.create(
+                session=db_session,
+                ticket_id="INC-2026-C07",
+                author_id=uuid.UUID("44444444-4444-4444-4444-444444444444"),
+                author_name="Test Author",
+                content="Should fail - ticket closed",
+            )
+        assert "INC-2026-C07" in str(exc_info.value)
 
 
 class TestListComments:

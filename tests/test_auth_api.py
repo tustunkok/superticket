@@ -102,7 +102,7 @@ class TestRegister:
             },
         )
         assert response.status_code == 201
-        assert response.json()["role"] == "admin"
+        assert response.json()["role"] == "user"
 
 
 class TestLogin:

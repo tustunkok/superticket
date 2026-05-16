@@ -73,6 +73,11 @@
                         <a class="nav-link" href="/agent/tickets"><i class="bi bi-headset me-1"></i>Agent Workspace</a>
                     </li>
                     {% endif %}
+                    {% if user.role == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/users"><i class="bi bi-people me-1"></i>Admin</a>
+                    </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link" href="/portal/"><i class="bi bi-inbox me-1"></i>My Tickets</a>
                     </li>

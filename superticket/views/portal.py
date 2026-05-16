@@ -5,6 +5,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from superticket.core.dependencies import get_current_active_user_from_cookie, get_db
+from superticket.core.exceptions import TicketClosed
 from superticket.models.user import User
 from superticket.services.comment import CommentService
 from superticket.services.ticket import TicketService
@@ -104,6 +105,7 @@ def ticket_detail(
             "user": current_user,
             "ticket": ticket,
             "comments": comments,
+            "error": request.query_params.get("error"),
         },
     )
 
@@ -133,12 +135,18 @@ def add_comment(
     current_user: User = Depends(get_current_active_user_from_cookie),
 ):
     """Add a public comment from the portal."""
-    CommentService.create(
-        session=db,
-        ticket_id=ticket_id,
-        author_id=current_user.id,
-        author_name=current_user.full_name,
-        content=content,
-        is_internal=False,
-    )
+    try:
+        CommentService.create(
+            session=db,
+            ticket_id=ticket_id,
+            author_id=current_user.id,
+            author_name=current_user.full_name,
+            content=content,
+            is_internal=False,
+        )
+    except TicketClosed:
+        return RedirectResponse(
+            url=f"/portal/tickets/{ticket_id}?error=closed",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
     return RedirectResponse(url=f"/portal/tickets/{ticket_id}", status_code=status.HTTP_303_SEE_OTHER)

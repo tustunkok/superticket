@@ -115,23 +115,22 @@ class TestLoginFlow:
         assert resp.status_code == 303
         assert resp.headers["location"] == "/portal/"
 
-    def test_login_redirects_agent_to_agent(self, client):
+    def test_login_redirects_user_to_portal(self, client):
         client.post(
             "/api/v1/auth/register",
             json={
-                "email": "redirectagent@example.com",
+                "email": "redirectuser2@example.com",
                 "password": "password123",
-                "full_name": "Redirect Agent",
-                "role": "agent",
+                "full_name": "Redirect User2",
             },
         )
         resp = client.post(
             "/login",
-            data={"email": "redirectagent@example.com", "password": "password123"},
+            data={"email": "redirectuser2@example.com", "password": "password123"},
             follow_redirects=False,
         )
         assert resp.status_code == 303
-        assert resp.headers["location"] == "/agent/"
+        assert resp.headers["location"] == "/portal/"
 
     def test_login_bad_credentials_redirects_with_error(self, client):
         resp = client.post(
