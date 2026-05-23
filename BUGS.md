@@ -1,15 +1,5 @@
 # Known Bugs
 
-## Bug 4: Agent role guard is a no-op and never called (MEDIUM)
-
-**Affected file:** `views/agent.py:18-20`
-
-**Current behavior:** The `_require_agent` function checks `if current_user.role not in ("agent", "admin"): pass` — the entire body is `pass`, so it does nothing. Additionally, this function is never called by any route. All agent routes use `get_current_active_user_from_cookie` as their dependency, which only verifies authentication and active status, not role.
-
-**Expected behavior:** Agent routes should enforce that the user has the `agent` or `admin` role. Either call `_require_agent` in each agent view function (and raise `HTTPException(403)` instead of `pass`), or create a proper FastAPI dependency like `require_agent_role`.
-
----
-
 ## Bug 5: Flash messages are non-functional — toast system broken (MEDIUM)
 
 **Affected files:**

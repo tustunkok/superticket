@@ -440,3 +440,233 @@ class TestRootRedirect:
         resp = admin_client.get("/", follow_redirects=False)
         assert resp.status_code in (302, 303, 307)
         assert resp.headers["location"] == "/agent/tickets"
+
+
+class TestAgentRoleGuard:
+    """Bug 4: Agent routes enforce role guard."""
+
+    def test_regular_user_forbidden_on_dashboard(self, user_client):
+        resp = user_client.get("/agent/", follow_redirects=False)
+        assert resp.status_code == 403
+
+    def test_regular_user_forbidden_on_ticket_queue(self, user_client):
+        resp = user_client.get("/agent/tickets", follow_redirects=False)
+        assert resp.status_code == 403
+
+    def test_agent_can_access_dashboard(self, agent_client):
+        resp = agent_client.get("/agent/", follow_redirects=False)
+        assert resp.status_code in (200, 307)
+
+    def test_agent_can_access_ticket_queue(self, agent_client):
+        resp = agent_client.get("/agent/tickets")
+        assert resp.status_code == 200
+
+    def test_admin_can_access_dashboard(self, admin_client):
+        resp = admin_client.get("/agent/", follow_redirects=False)
+        assert resp.status_code in (200, 307)
+
+    def test_admin_can_access_ticket_queue(self, admin_client):
+        resp = admin_client.get("/agent/tickets")
+        assert resp.status_code == 200
+
+    def test_regular_user_forbidden_on_workspace(self, user_client, agent_client):
+        """Regular user cannot access ticket workspace."""
+        agent_client.post(
+            "/api/v1/tickets",
+            json={
+                "id": "INC-ROLEGUARD-001",
+                "requester_id": "someone@example.com",
+                "category": "Hardware",
+                "sub_category": "Laptop",
+                "item": "Screen",
+                "urgency": "high",
+                "impact": "individual",
+            },
+        )
+        user_client.post(
+            "/login",
+            data={"email": "portaluser@example.com", "password": "password123"},
+            follow_redirects=False,
+        )
+        resp = user_client.get("/agent/tickets/INC-ROLEGUARD-001/work", follow_redirects=False)
+        assert resp.status_code == 403
+
+    def test_regular_user_forbidden_on_comment(self, user_client, agent_client):
+        """Regular user cannot add comments via agent route."""
+        agent_client.post(
+            "/api/v1/tickets",
+            json={
+                "id": "INC-ROLEGUARD-002",
+                "requester_id": "someone@example.com",
+                "category": "Hardware",
+                "sub_category": "Laptop",
+                "item": "Screen",
+                "urgency": "high",
+                "impact": "individual",
+            },
+        )
+        user_client.post(
+            "/login",
+            data={"email": "portaluser@example.com", "password": "password123"},
+            follow_redirects=False,
+        )
+        resp = user_client.post(
+            "/agent/tickets/INC-ROLEGUARD-002/comments",
+            data={"content": "Unauthorized comment", "is_internal": "false"},
+            follow_redirects=False,
+        )
+        assert resp.status_code == 403
+
+    def test_regular_user_forbidden_on_transition(self, user_client, agent_client):
+        """Regular user cannot transition tickets via agent route."""
+        agent_client.post(
+            "/api/v1/tickets",
+            json={
+                "id": "INC-ROLEGUARD-003",
+                "requester_id": "someone@example.com",
+                "category": "Hardware",
+                "sub_category": "Laptop",
+                "item": "Screen",
+                "urgency": "high",
+                "impact": "individual",
+            },
+        )
+        user_client.post(
+            "/login",
+            data={"email": "portaluser@example.com", "password": "password123"},
+            follow_redirects=False,
+        )
+        resp = user_client.post(
+            "/agent/tickets/INC-ROLEGUARD-003/transition",
+            data={"target_state": "triage"},
+            follow_redirects=False,
+        )
+        assert resp.status_code == 403
+
+    def test_regular_user_forbidden_on_triage(self, user_client, agent_client):
+        """Regular user cannot triage tickets via agent route."""
+        agent_client.post(
+            "/api/v1/tickets",
+            json={
+                "id": "INC-ROLEGUARD-004",
+                "requester_id": "someone@example.com",
+                "category": "Hardware",
+                "sub_category": "Laptop",
+                "item": "Screen",
+                "urgency": "high",
+                "impact": "individual",
+            },
+        )
+        agent_client.post(
+            "/agent/tickets/INC-ROLEGUARD-004/transition",
+            data={"target_state": "triage"},
+            follow_redirects=False,
+        )
+        user_client.post(
+            "/login",
+            data={"email": "portaluser@example.com", "password": "password123"},
+            follow_redirects=False,
+        )
+        resp = user_client.post(
+            "/agent/tickets/INC-ROLEGUARD-004/triage",
+            data={
+                "category": "Access",
+                "sub_category": "Account",
+                "item": "Password Reset",
+                "urgency": "high",
+                "impact": "org",
+            },
+            follow_redirects=False,
+        )
+        assert resp.status_code == 403
+
+    def test_admin_can_access_workspace(self, admin_client, agent_client):
+        """Admin can access ticket workspace."""
+        agent_client.post(
+            "/api/v1/tickets",
+            json={
+                "id": "INC-ADMIN-WORKSPACE",
+                "requester_id": "someone@example.com",
+                "category": "Hardware",
+                "sub_category": "Laptop",
+                "item": "Screen",
+                "urgency": "high",
+                "impact": "individual",
+            },
+        )
+        resp = admin_client.get("/agent/tickets/INC-ADMIN-WORKSPACE/work")
+        assert resp.status_code == 200
+
+    def test_admin_can_transition_ticket(self, admin_client, agent_client):
+        """Admin can transition tickets via agent route."""
+        agent_client.post(
+            "/api/v1/tickets",
+            json={
+                "id": "INC-ADMIN-TRANSITION",
+                "requester_id": "someone@example.com",
+                "category": "Hardware",
+                "sub_category": "Laptop",
+                "item": "Screen",
+                "urgency": "high",
+                "impact": "individual",
+            },
+        )
+        resp = admin_client.post(
+            "/agent/tickets/INC-ADMIN-TRANSITION/transition",
+            data={"target_state": "triage"},
+            follow_redirects=False,
+        )
+        assert resp.status_code == 303
+
+    def test_admin_can_add_comment(self, admin_client, agent_client):
+        """Admin can add comments via agent route."""
+        agent_client.post(
+            "/api/v1/tickets",
+            json={
+                "id": "INC-ADMIN-COMMENT",
+                "requester_id": "someone@example.com",
+                "category": "Hardware",
+                "sub_category": "Laptop",
+                "item": "Screen",
+                "urgency": "high",
+                "impact": "individual",
+            },
+        )
+        resp = admin_client.post(
+            "/agent/tickets/INC-ADMIN-COMMENT/comments",
+            data={"content": "Admin comment", "is_internal": "true"},
+            follow_redirects=False,
+        )
+        assert resp.status_code == 303
+
+    def test_admin_can_triage_ticket(self, admin_client, agent_client):
+        """Admin can triage tickets via agent route."""
+        agent_client.post(
+            "/api/v1/tickets",
+            json={
+                "id": "INC-ADMIN-TRIAGE",
+                "requester_id": "someone@example.com",
+                "category": "Hardware",
+                "sub_category": "Laptop",
+                "item": "Screen",
+                "urgency": "high",
+                "impact": "individual",
+            },
+        )
+        agent_client.post(
+            "/agent/tickets/INC-ADMIN-TRIAGE/transition",
+            data={"target_state": "triage"},
+            follow_redirects=False,
+        )
+        resp = admin_client.post(
+            "/agent/tickets/INC-ADMIN-TRIAGE/triage",
+            data={
+                "category": "Access",
+                "sub_category": "Account",
+                "item": "Password Reset",
+                "urgency": "high",
+                "impact": "org",
+            },
+            follow_redirects=False,
+        )
+        assert resp.status_code == 303

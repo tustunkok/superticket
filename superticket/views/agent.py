@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from superticket.core.dependencies import get_current_active_user_from_cookie, get_db
+from superticket.core.dependencies import require_agent_or_admin_cookie, get_db
 from superticket.core.exceptions import TicketClosed
 from superticket.models.enums import TicketState
 from superticket.models.user import User
@@ -18,17 +18,11 @@ from superticket.template_engine import templates
 router = APIRouter(prefix="/agent", tags=["agent"])
 
 
-def _require_agent(current_user: User) -> None:
-    """Ensure current user is an agent or admin."""
-    if current_user.role not in ("agent", "admin"):
-        pass
-
-
 @router.get("/")
 def agent_dashboard(
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user_from_cookie),
+    current_user: User = Depends(require_agent_or_admin_cookie),
 ):
     """Default agent dashboard showing ticket queue."""
     return RedirectResponse(url="/agent/tickets", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
@@ -43,7 +37,7 @@ def agent_ticket_queue(
     skip: int = 0,
     limit: int = 50,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user_from_cookie),
+    current_user: User = Depends(require_agent_or_admin_cookie),
 ):
     """Full ticket queue with filters."""
     all_tickets = TicketService.list_(db, skip=0, limit=1000)
@@ -88,7 +82,7 @@ def ticket_workspace(
     request: Request,
     ticket_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user_from_cookie),
+    current_user: User = Depends(require_agent_or_admin_cookie),
 ):
     """Main workspace view for a ticket."""
     ticket = TicketService.get(db, ticket_id)
@@ -140,7 +134,7 @@ def add_agent_comment(
     content: str = Form(...),
     is_internal: bool = Form(default=False),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user_from_cookie),
+    current_user: User = Depends(require_agent_or_admin_cookie),
 ):
     """Add a comment from agent (public or internal)."""
     try:
@@ -169,7 +163,7 @@ def transition_ticket(
     ticket_id: str,
     target_state: str = Form(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user_from_cookie),
+    current_user: User = Depends(require_agent_or_admin_cookie),
 ):
     """Trigger state transition from workspace."""
     TicketService.transition_state(
@@ -194,7 +188,7 @@ def triage_ticket(
     urgency: str = Form(...),
     impact: str = Form(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user_from_cookie),
+    current_user: User = Depends(require_agent_or_admin_cookie),
 ):
     """Update ticket fields and transition from triage to assigned."""
     priority = _compute_priority(urgency, impact)

@@ -132,3 +132,15 @@ def require_admin_cookie(
             detail="Admin access required.",
         )
     return current_user
+
+
+def require_agent_or_admin_cookie(
+    current_user: User = Depends(get_current_active_user_from_cookie),
+) -> User:
+    """Require an authenticated, active agent or admin user (cookie-based)."""
+    if current_user.role not in (UserRole.AGENT.value, UserRole.ADMIN.value):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Agent or admin access required.",
+        )
+    return current_user
