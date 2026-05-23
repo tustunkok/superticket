@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from starlette.middleware.sessions import SessionMiddleware
 
 from superticket.api.v1.auth import router as api_auth_router
 from superticket.api.v1.comments import router as comments_router
@@ -56,6 +57,9 @@ app = FastAPI(
     lifespan=lifespan,
     redirect_slashes=False,
 )
+
+# Session middleware must be registered first so request.session is available everywhere
+app.add_middleware(SessionMiddleware, secret_key=settings.secret_key)
 
 
 @app.middleware("http")

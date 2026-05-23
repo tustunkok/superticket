@@ -1,11 +1,12 @@
 """Web authentication routes (cookie-based)."""
 
-from fastapi import APIRouter, Depends, Form, Request, Response, status
+from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from superticket.core.dependencies import get_db
 from superticket.core.exceptions import InvalidCredentials
+from superticket.core.flash import set_flash
 from superticket.services.auth import AuthService, create_access_token
 from superticket.template_engine import templates
 
@@ -13,18 +14,17 @@ router = APIRouter(tags=["web-auth"])
 
 
 @router.get("/login")
-def login_page(request: Request, error: str = None):
+def login_page(request: Request):
     """Render the login form."""
     return templates.TemplateResponse(
         request,
         "login.html",
-        {"error": error},
     )
 
 
 @router.post("/login")
 def login_submit(
-    response: Response,
+    request: Request,
     email: str = Form(...),
     password: str = Form(...),
     db: Session = Depends(get_db),
@@ -33,10 +33,8 @@ def login_submit(
     try:
         user = AuthService.authenticate_user(db, email, password)
     except InvalidCredentials:
-        return RedirectResponse(
-            url="/login?error=Invalid+email+or+password",
-            status_code=status.HTTP_303_SEE_OTHER,
-        )
+        set_flash(request, "Invalid email or password.", "error")
+        return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
 
     access_token = create_access_token(
         data={"sub": str(user.id), "email": user.email}
@@ -84,7 +82,8 @@ def register_submit(
             status_code=status.HTTP_409_CONFLICT,
         )
 
-    return RedirectResponse(url="/login?error=Account+created.+Please+sign+in.", status_code=status.HTTP_303_SEE_OTHER)
+    set_flash(request, "Account created. Please sign in.", "info")
+    return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/logout")

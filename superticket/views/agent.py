@@ -8,6 +8,7 @@ from uuid import UUID
 
 from superticket.core.dependencies import require_agent_or_admin_cookie, get_db
 from superticket.core.exceptions import TicketClosed
+from superticket.core.flash import set_flash
 from superticket.models.enums import TicketState
 from superticket.models.user import User
 from superticket.services.comment import CommentService
@@ -120,7 +121,6 @@ def ticket_workspace(
             "comments": comments,
             "audit_logs": audit_logs,
             "transitions": transitions,
-            "error": request.query_params.get("error"),
             "requester_name": requester_name,
             "requester_email": requester_email,
         },
@@ -147,10 +147,12 @@ def add_agent_comment(
             is_internal=is_internal,
         )
     except TicketClosed:
+        set_flash(request, "Cannot add comments to a closed ticket.", "error")
         return RedirectResponse(
-            url=f"/agent/tickets/{ticket_id}/work?error=closed",
+            url=f"/agent/tickets/{ticket_id}/work",
             status_code=status.HTTP_303_SEE_OTHER,
         )
+    set_flash(request, "Comment added successfully.", "success")
     return RedirectResponse(
         url=f"/agent/tickets/{ticket_id}/work",
         status_code=status.HTTP_303_SEE_OTHER,
@@ -172,6 +174,7 @@ def transition_ticket(
         TicketState(target_state),
         performed_by=current_user.email,
     )
+    set_flash(request, f"Ticket moved to {target_state}.", "success")
     return RedirectResponse(
         url=f"/agent/tickets/{ticket_id}/work",
         status_code=status.HTTP_303_SEE_OTHER,
@@ -209,6 +212,7 @@ def triage_ticket(
         TicketState.ASSIGNED,
         performed_by=current_user.email,
     )
+    set_flash(request, "Ticket triaged and assigned.", "success")
     return RedirectResponse(
         url=f"/agent/tickets/{ticket_id}/work",
         status_code=status.HTTP_303_SEE_OTHER,

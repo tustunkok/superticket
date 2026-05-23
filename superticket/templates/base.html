@@ -53,7 +53,11 @@
         .badge-p4 { background: #9ca3af; color: #fff; }
         .comment-internal { border-left: 3px solid #f59e0b; padding-left: .75rem; }
         .comment-public { border-left: 3px solid #3b82f6; padding-left: .75rem; }
-        .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 9999; }
+        .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 9999; display: flex; flex-direction: column; gap: .5rem; }
+        .st-toast-success { background: #d1fae5; color: #065f46; border-color: #34d399; }
+        .st-toast-error { background: #fee2e2; color: #991b1b; border-color: #f87171; }
+        .st-toast-warning { background: #fef3c7; color: #92400e; border-color: #fbbf24; }
+        .st-toast-info { background: #dbeafe; color: #1e40af; border-color: #60a5fa; }
         footer { margin-top: auto; }
     </style>
     {% block head %}{% endblock %}
@@ -93,9 +97,15 @@
     </nav>
 
     <div class="toast-container" id="toast-container">
-        {% for message in get_flashed_messages() %}
-        <div class="toast show" role="alert">
-            <div class="toast-body">{{ message }}</div>
+        {% for category, message in flash_messages %}
+        <div class="toast show st-toast-{{ category }}" role="alert">
+            <div class="toast-body d-flex align-items-center gap-2">
+                {% if category == 'success' %}<i class="bi bi-check-circle-fill"></i>
+                {% elif category == 'error' %}<i class="bi bi-exclamation-triangle-fill"></i>
+                {% elif category == 'warning' %}<i class="bi bi-exclamation-circle-fill"></i>
+                {% else %}<i class="bi bi-info-circle-fill"></i>{% endif %}
+                {{ message }}
+            </div>
         </div>
         {% endfor %}
     </div>
@@ -110,6 +120,19 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
+    {% if flash_messages %}
+    <script>
+        (function() {
+            var toasts = document.querySelectorAll('#toast-container .toast');
+            toasts.forEach(function(el) {
+                setTimeout(function() {
+                    el.classList.remove('show');
+                    setTimeout(function() { el.remove(); }, 500);
+                }, 4000);
+            });
+        })();
+    </script>
+    {% endif %}
     {% block scripts %}{% endblock %}
 </body>
 </html>

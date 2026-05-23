@@ -31,13 +31,6 @@
                         <p class="text-muted">Sign in to your account</p>
                     </div>
 
-                    {% if error %}
-                    <div class="alert alert-danger d-flex align-items-center" role="alert">
-                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                        <div>{{ error }}</div>
-                    </div>
-                    {% endif %}
-
                     <form method="POST" action="/login">
                         <div class="mb-3">
                             <label for="email" class="form-label">Email address</label>

@@ -8,20 +8,6 @@
     <a href="/admin/users" class="btn btn-outline-secondary"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</a>
 </div>
 
-{% if request.query_params.get('error') %}
-<div class="alert alert-danger d-flex align-items-center" role="alert">
-    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-    <div>{{ request.query_params.get('error') }}</div>
-</div>
-{% endif %}
-
-{% if request.query_params.get('success') %}
-<div class="alert alert-success d-flex align-items-center" role="alert">
-    <i class="bi bi-check-circle-fill me-2"></i>
-    <div>{{ request.query_params.get('success') | replace('+', ' ') }}</div>
-</div>
-{% endif %}
-
 <div class="card st-card mb-4">
     <div class="card-header">
         <i class="bi bi-funnel me-1"></i>Filters

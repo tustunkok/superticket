@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 
 from superticket.core.dependencies import require_admin_cookie, get_db
+from superticket.core.flash import set_flash
 from superticket.models.enums import UserRole
 from superticket.models.user import User
 from superticket.services.auth import AuthService
@@ -53,6 +54,7 @@ def list_users(
 
 @router.post("/users/{user_id}/role")
 def update_role(
+    request: Request,
     user_id: str,
     role: str = Form(...),
     db: Session = Depends(get_db),
@@ -62,15 +64,18 @@ def update_role(
     try:
         AuthService.update_user_role(db, UUID(user_id), role)
     except ValueError as exc:
+        set_flash(request, str(exc), "error")
         return RedirectResponse(
-            url=f"/admin/users?error={str(exc)}",
+            url="/admin/users",
             status_code=status.HTTP_303_SEE_OTHER,
         )
-    return RedirectResponse(url="/admin/users?success=Role+updated", status_code=status.HTTP_303_SEE_OTHER)
+    set_flash(request, "Role updated.", "success")
+    return RedirectResponse(url="/admin/users", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/users/{user_id}/toggle-active")
 def toggle_active(
+    request: Request,
     user_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin_cookie),
@@ -82,15 +87,18 @@ def toggle_active(
             raise ValueError(f"User '{user_id}' not found.")
         AuthService.set_user_active(db, UUID(user_id), not user.is_active, current_user)
     except ValueError as exc:
+        set_flash(request, str(exc), "error")
         return RedirectResponse(
-            url=f"/admin/users?error={str(exc)}",
+            url="/admin/users",
             status_code=status.HTTP_303_SEE_OTHER,
         )
-    return RedirectResponse(url="/admin/users?success=Status+updated", status_code=status.HTTP_303_SEE_OTHER)
+    set_flash(request, "Status updated.", "success")
+    return RedirectResponse(url="/admin/users", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/users/{user_id}/delete")
 def delete_user(
+    request: Request,
     user_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin_cookie),
@@ -99,8 +107,10 @@ def delete_user(
     try:
         AuthService.delete_user(db, UUID(user_id), current_user)
     except ValueError as exc:
+        set_flash(request, str(exc), "error")
         return RedirectResponse(
-            url=f"/admin/users?error={str(exc)}",
+            url="/admin/users",
             status_code=status.HTTP_303_SEE_OTHER,
         )
-    return RedirectResponse(url="/admin/users?success=User+deleted", status_code=status.HTTP_303_SEE_OTHER)
+    set_flash(request, "User deleted.", "success")
+    return RedirectResponse(url="/admin/users", status_code=status.HTTP_303_SEE_OTHER)

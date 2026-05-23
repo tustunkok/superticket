@@ -156,7 +156,8 @@ class TestLoginFlow:
             follow_redirects=False,
         )
         assert resp.status_code == 303
-        assert resp.headers["location"] == "/login?error=Invalid+email+or+password"
+        # Flash messages are stored in session cookie, not query params
+        assert resp.headers["location"] == "/login"
 
     def test_logout_clears_cookie(self, user_client):
         resp = user_client.get("/logout", follow_redirects=False)

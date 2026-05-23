@@ -1,17 +1,5 @@
 # Known Bugs
 
-## Bug 5: Flash messages are non-functional — toast system broken (MEDIUM)
-
-**Affected files:**
-- `template_engine.py:17` — `get_flashed_messages: lambda: []`
-- `templates/base.html:90-96` — toast container
-
-**Current behavior:** The Jinja2 global `get_flashed_messages` is hardcoded to return an empty list. The toast container in `base.html` iterates over `get_flashed_messages()`, which always yields nothing. No success, error, or info feedback is ever shown in the UI after form submissions or redirects.
-
-**Expected behavior:** Flash messages should be wired to session state (e.g., via cookies or a middleware) so that messages set before a redirect are actually rendered as toasts on the destination page.
-
----
-
 ## Bug 6: Web views fetch all 1000 tickets and filter/paginate in-memory (MEDIUM)
 
 **Affected files:**

@@ -161,14 +161,15 @@ class TestAdminRoleChange:
             select(User).where(User.email == "invalidrole@test.com")
         ).scalar_one()
 
-        # Try to change to invalid role
+        # Try to change to invalid role — should redirect with flash error
         resp = admin_client.post(
             f"/admin/users/{user.id}/role",
             data={"role": "invalid"},
             follow_redirects=False,
         )
         assert resp.status_code == 303
-        assert "error" in resp.headers["location"]
+        # Flash messages are stored in session cookie, not query params
+        assert resp.headers["location"] == "/admin/users"
 
 
 class TestAdminToggleActive:
@@ -211,13 +212,14 @@ class TestAdminToggleActive:
             select(User).where(User.email == "admin@test.com")
         ).scalar_one()
 
-        # Try to deactivate self
+        # Try to deactivate self — should redirect with flash error
         resp = admin_client.post(
             f"/admin/users/{admin.id}/toggle-active",
             follow_redirects=False,
         )
         assert resp.status_code == 303
-        assert "error" in resp.headers["location"]
+        # Flash messages are stored in session cookie, not query params
+        assert resp.headers["location"] == "/admin/users"
         db.refresh(admin)
         assert admin.is_active is True
 
@@ -257,13 +259,14 @@ class TestAdminDeleteUser:
             select(User).where(User.email == "admin@test.com")
         ).scalar_one()
 
-        # Try to delete self
+        # Try to delete self — should redirect with flash error
         resp = admin_client.post(
             f"/admin/users/{admin.id}/delete",
             follow_redirects=False,
         )
         assert resp.status_code == 303
-        assert "error" in resp.headers["location"]
+        # Flash messages are stored in session cookie, not query params
+        assert resp.headers["location"] == "/admin/users"
         # User should still exist
         db.refresh(admin)
         assert admin.id is not None

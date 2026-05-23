@@ -9,11 +9,13 @@ dependencies = [
     "bcrypt>=4.0,<5",
     "email-validator",
     "fastapi",
+    "itsdangerous",
     "jinja2",
     "pydantic-settings",
     "python-jose[cryptography]",
     "python-multipart",
     "sqlalchemy",
+    "starlette",
     "uvicorn[standard]",
 ]
 

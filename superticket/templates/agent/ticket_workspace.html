@@ -142,12 +142,6 @@
                 <div id="comments">
                     {% include 'partials/comment_thread.html' with context %}
                  </div>
-                 {% if error == 'closed' %}
-                 <div class="alert alert-warning d-flex align-items-center" role="alert">
-                     <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                     <div>Cannot add comments to a closed ticket.</div>
-                 </div>
-                 {% endif %}
                  {% if ticket.state != 'closed' %}
                  <hr>
                  <form method="POST" action="/agent/tickets/{{ ticket.id }}/comments">

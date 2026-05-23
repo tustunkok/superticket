@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from superticket.core.dependencies import get_current_active_user_from_cookie, get_db
 from superticket.core.exceptions import TicketClosed
+from superticket.core.flash import set_flash
 from superticket.models.user import User
 from superticket.services.comment import CommentService
 from superticket.services.ticket import TicketService
@@ -85,6 +86,7 @@ def create_ticket(
         description=description or None,
         performed_by=current_user.email,
     )
+    set_flash(request, f"Ticket {ticket.id} created successfully.", "success")
     return RedirectResponse(url=f"/portal/tickets/{ticket.id}", status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -105,7 +107,6 @@ def ticket_detail(
             "user": current_user,
             "ticket": ticket,
             "comments": comments,
-            "error": request.query_params.get("error"),
         },
     )
 
@@ -145,8 +146,10 @@ def add_comment(
             is_internal=False,
         )
     except TicketClosed:
+        set_flash(request, "Cannot add comments to a closed ticket.", "error")
         return RedirectResponse(
-            url=f"/portal/tickets/{ticket_id}?error=closed",
+            url=f"/portal/tickets/{ticket_id}",
             status_code=status.HTTP_303_SEE_OTHER,
         )
+    set_flash(request, "Comment added successfully.", "success")
     return RedirectResponse(url=f"/portal/tickets/{ticket_id}", status_code=status.HTTP_303_SEE_OTHER)
