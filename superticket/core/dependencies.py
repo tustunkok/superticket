@@ -96,6 +96,20 @@ def get_current_active_user_from_cookie(
     return current_user
 
 
+def get_optional_user_from_cookie(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> User | None:
+    """Decode JWT from cookie and return the user, or None if not authenticated."""
+    token = request.cookies.get("access_token")
+    if not token:
+        return None
+    try:
+        return _get_user_from_token(token, db)
+    except HTTPException:
+        return None
+
+
 def require_admin(
     current_user: User = Depends(get_current_active_user),
 ) -> User:

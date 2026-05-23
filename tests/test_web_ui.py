@@ -51,7 +51,6 @@ def user_client(client):
             "email": "portaluser@example.com",
             "password": "password123",
             "full_name": "Portal User",
-            "role": "user",
         },
     )
     resp = client.post(
@@ -69,6 +68,25 @@ def user_client(client):
     return client
 
 
+def _set_user_role(email: str, role: str) -> None:
+    """Update a user's role in the test database (bypasses schema for tests)."""
+    from superticket.core.dependencies import get_db
+    from superticket.models.user import User
+    from sqlalchemy import select
+
+    override = app.dependency_overrides.get(get_db)
+    if not override:
+        return
+    db = next(override())
+    try:
+        user = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
+        if user:
+            user.role = role
+            db.commit()
+    finally:
+        db.close()
+
+
 @pytest.fixture
 def agent_client(client):
     """Register an agent and return client with cookies."""
@@ -78,16 +96,15 @@ def agent_client(client):
             "email": "agent@example.com",
             "password": "password123",
             "full_name": "Agent User",
-            "role": "agent",
         },
     )
+    _set_user_role("agent@example.com", "agent")
     resp = client.post(
         "/login",
         data={"email": "agent@example.com", "password": "password123"},
         follow_redirects=False,
     )
     assert resp.status_code == 303
-    # Also get Bearer token for API calls
     login = client.post(
         "/api/v1/auth/token",
         data={"username": "agent@example.com", "password": "password123"},
@@ -115,7 +132,7 @@ class TestLoginFlow:
         assert resp.status_code == 303
         assert resp.headers["location"] == "/portal/"
 
-    def test_login_redirects_user_to_portal(self, client):
+    def test_login_redirects_default_user_to_portal(self, client):
         client.post(
             "/api/v1/auth/register",
             json={
@@ -372,3 +389,54 @@ class TestKBEndpoints:
     def test_kb_article_not_found(self, client):
         resp = client.get("/api/v1/kb/nonexistent")
         assert resp.status_code == 404
+
+
+@pytest.fixture
+def admin_client(client):
+    """Register an admin and return client with cookies."""
+    client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "admin_test@example.com",
+            "password": "password123",
+            "full_name": "Admin Test",
+        },
+    )
+    _set_user_role("admin_test@example.com", "admin")
+    resp = client.post(
+        "/login",
+        data={"email": "admin_test@example.com", "password": "password123"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    login = client.post(
+        "/api/v1/auth/token",
+        data={"username": "admin_test@example.com", "password": "password123"},
+    )
+    client.headers["Authorization"] = f"Bearer {login.json()['access_token']}"
+    return client
+
+
+class TestRootRedirect:
+    """Bug 3: root route should redirect authenticated users to their dashboard."""
+
+    def test_unauthenticated_redirects_to_login(self, client):
+        client.cookies.pop("access_token", None)
+        resp = client.get("/", follow_redirects=False)
+        assert resp.status_code in (302, 303, 307)
+        assert resp.headers["location"] == "/login"
+
+    def test_authenticated_user_redirects_to_portal(self, user_client):
+        resp = user_client.get("/", follow_redirects=False)
+        assert resp.status_code in (302, 303, 307)
+        assert resp.headers["location"] == "/portal/"
+
+    def test_authenticated_agent_redirects_to_agent_tickets(self, agent_client):
+        resp = agent_client.get("/", follow_redirects=False)
+        assert resp.status_code in (302, 303, 307)
+        assert resp.headers["location"] == "/agent/tickets"
+
+    def test_authenticated_admin_redirects_to_agent_tickets(self, admin_client):
+        resp = admin_client.get("/", follow_redirects=False)
+        assert resp.status_code in (302, 303, 307)
+        assert resp.headers["location"] == "/agent/tickets"

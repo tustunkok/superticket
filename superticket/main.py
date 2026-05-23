@@ -3,7 +3,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
@@ -13,6 +13,7 @@ from superticket.api.v1.auth import router as api_auth_router
 from superticket.api.v1.comments import router as comments_router
 from superticket.api.v1.tickets import router as tickets_router
 from superticket.core.config import settings
+from superticket.core.dependencies import get_optional_user_from_cookie
 from superticket.core.exceptions import InvalidStateTransition, TicketClosed, TicketNotFound
 from superticket.db.engine import init_db, SessionLocal
 from superticket.models.user import User
@@ -116,6 +117,12 @@ def health_check():
 
 
 @app.get("/")
-def root_redirect():
-    """Redirect root to login."""
+def root_redirect(
+    current_user: User | None = Depends(get_optional_user_from_cookie),
+):
+    """Redirect root to login or dashboard based on auth status."""
+    if current_user and current_user.is_active:
+        if current_user.role in ("agent", "admin"):
+            return RedirectResponse(url="/agent/tickets")
+        return RedirectResponse(url="/portal/")
     return RedirectResponse(url="/login")

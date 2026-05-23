@@ -1,17 +1,5 @@
 # Known Bugs
 
-## Bug 3: Navbar logo redirects to /login for authenticated users (MEDIUM)
-
-**Affected files:**
-- `templates/base.html:64` — `<a class="navbar-brand" href="/">...SuperTicket</a>`
-- `main.py:109-112` — `@app.get("/")` unconditionally returns `RedirectResponse(url="/login")`
-
-**Current behavior:** The "SuperTicket" brand link always navigates to `/`. The root route `/` unconditionally redirects to `/login`, even when the user is already authenticated. A logged-in user clicking the logo gets kicked to the login page.
-
-**Expected behavior:** The root route should check authentication and redirect authenticated users to their appropriate dashboard (`/portal/` for users, `/agent/tickets` for agents/admins), only redirecting unauthenticated users to `/login`. Alternatively, the navbar link could point to a context-appropriate URL based on the user's role.
-
----
-
 ## Bug 4: Agent role guard is a no-op and never called (MEDIUM)
 
 **Affected file:** `views/agent.py:18-20`
