@@ -17,7 +17,7 @@ Rationale: While Django provides a full-featured admin interface and ORM out of 
 4. **Modern Python**: Pydantic v2 (used by FastAPI) offers significantly better performance and stricter type validation than Django's form/serializer system.
 5. **Lightweight**: A FastAPI project can remain a simple Python package. Django's app-based structure would introduce boilerplate we don't need for the current scope.
 
-Django would make sense if we needed an immediate admin UI or a monolithic full-stack web app. Since the front-end is deferred and we are building API-first, FastAPI is the pragmatic choice.
+Django would make sense if we needed an immediate admin UI or a monolithic full-stack web app. The project started as API-first but evolved to include a Jinja2-rendered web UI for the self-service portal, agent workspace, and admin interface. FastAPI remains the pragmatic choice because it supports both REST APIs and server-side HTML rendering without friction.
 
 ---
 
@@ -28,9 +28,9 @@ The system follows a classic layered architecture to keep concerns separated and
 ```
 ┌─────────────────────────────────────────────┐
 │              Consumer Layer                  │
-│  (Future: Web UI, CLI, Email Workers)        │
+│  (Web UI: Jinja2 + Starlette static files)   │
 └────────────────────┬────────────────────────┘
-                     │ HTTP / REST
+                      │ HTTP / REST
 ┌────────────────────▼────────────────────────┐
 │              API Layer                       │
 │  FastAPI Routers                             │
@@ -38,20 +38,15 @@ The system follows a classic layered architecture to keep concerns separated and
 │  - Dependency Injection                      │
 │  - Exception Handling                        │
 └────────────────────┬────────────────────────┘
-                     │
+                      │
 ┌────────────────────▼────────────────────────┐
 │            Service Layer                     │
 │  - Business Logic                            │
 │  - State Machine Enforcement                 │
 │  - Audit Log Generation                      │
+│  - Direct SQLAlchemy ORM queries             │
 └────────────────────┬────────────────────────┘
-                     │
-┌────────────────────▼────────────────────────┐
-│           Repository Layer                   │
-│  - SQLAlchemy Queries & Transactions         │
-│  - Model-to-Domain Mapping                   │
-└────────────────────┬────────────────────────┘
-                     │
+                      │
 ┌────────────────────▼────────────────────────┐
 │             Data Layer                       │
 │   SQLite (MVP)  ←→  PostgreSQL (Future)    │
@@ -61,7 +56,7 @@ The system follows a classic layered architecture to keep concerns separated and
 
 **Design Principles:**
 - **Dependency Rule**: Each layer depends only on the layer directly below it.
-- **Interface Segregation**: The repository layer is abstracted so the service layer doesn't know if it's talking to SQLite or PostgreSQL.
+- **No Repository Layer**: The originally-planned repository abstraction was not implemented; the service layer queries SQLAlchemy ORM directly. This simplifies the architecture and reduces indirection. The database is still swapable via `DATABASE_URL`.
 - **Immutability**: Audit logs are append-only. No updates, no deletes.
 
 ---
@@ -74,33 +69,49 @@ superticket-project/
 ├── superticket/
 │   ├── __init__.py
 │   ├── main.py              # FastAPI application factory & lifespan events
+│   ├── template_engine.py   # Jinja2 template engine setup
 │   ├── core/
 │   │   ├── __init__.py
 │   │   ├── config.py        # Pydantic-settings based configuration management
 │   │   ├── exceptions.py    # Custom domain exceptions
-│   │   └── dependencies.py  # FastAPI dependency injection setup
+│   │   ├── dependencies.py  # FastAPI dependency injection setup
+│   │   └── flash.py         # Flash message utility (Starlette session cookies)
 │   ├── api/
 │   │   ├── __init__.py
 │   │   └── v1/
+│   │       ├── __init__.py
 │   │       ├── auth.py        # User registration, login, and profile endpoints
-│   │       └── tickets.py     # Ticket CRUD & state transition endpoints
+│   │       ├── tickets.py     # Ticket CRUD & state transition endpoints
+│   │       └── comments.py    # Comment create/list endpoints for tickets
 │   ├── schemas/
 │   │   ├── __init__.py
 │   │   ├── ticket.py          # Pydantic request & response DTOs
-│   │   └── user.py            # Pydantic user schemas
+│   │   ├── user.py            # Pydantic user schemas
+│   │   ├── comment.py         # Pydantic comment DTOs
+│   │   └── kb.py              # Pydantic knowledge base article schemas
 │   ├── services/
 │   │   ├── __init__.py
 │   │   ├── auth.py            # Password hashing, JWT management, user CRUD
-│   │   ├── ticket.py          # Ticket business logic & state machine
-│   │   └── audit.py           # Audit log recording service
-│   ├── repository/
-│   │   ├── __init__.py
-│   │   └── ticket.py          # SQLAlchemy data access for tickets
+│   │   ├── ticket.py          # Ticket business logic & transitions
+│   │   ├── state_machine.py   # State machine transition rules (VALID_TRANSITIONS dict)
+│   │   └── comment.py         # Comment creation and retrieval logic
 │   ├── models/
 │   │   ├── __init__.py
-│   │   ├── enums.py           # TicketState and UserRole enums
-│   │   ├── ticket.py          # SQLAlchemy ORM tables
-│   │   └── user.py            # SQLAlchemy user model
+│   │   ├── enums.py           # TicketState, UrgencyLevel, ImpactScope, PriorityLevel enums
+│   │   ├── ticket.py          # SQLAlchemy ORM: Ticket + AuditLog tables
+│   │   ├── user.py            # SQLAlchemy user model
+│   │   └── comment.py         # SQLAlchemy comment model (public/internal)
+│   ├── views/                 # Web UI route handlers (Jinja2 rendered)
+│   │   ├── __init__.py
+│   │   ├── auth.py            # Login, register, logout HTML routes
+│   │   ├── portal.py          # Self-service user ticket submission & viewing
+│   │   ├── agent.py           # Agent workspace: ticket assignment & management
+│   │   ├── admin.py           # Admin user management interface
+│   │   └── kb.py              # Knowledge base browsing routes
+│   ├── templates/             # Jinja2 HTML templates for web UI
+│   ├── static/                # Static files (CSS, JS) — currently empty
+│   ├── data/                  # Data fixtures and mock data
+│   │   └── mock_kb.py         # Mock knowledge base articles for development
 │   └── db/
 │       ├── __init__.py
 │       ├── engine.py        # SQLAlchemy engine & session factory
@@ -108,17 +119,36 @@ superticket-project/
 │
 ├── alembic/                 # Database migration scripts
 │   ├── versions/
+│   │   ├── 192fe95e38b2_create_tickets_and_audit_logs_tables.py
+│   │   ├── 0de2fd07dea8_add_users_table.py
+│   │   ├── c9142fe9cb10_add_description_to_tickets.py
+│   │   ├── 32b9f4aa9e49_add_assigned_to_to_tickets.py
+│   │   ├── 51adc2175062_add_comments_table.py
+│   │   └── 5d1a79e9b4dc_add_ticket_indexes.py
 │   └── env.py
 │
-├── tests/                   # Test suite (deferred pending test runner selection)
-│   └── ...
+├── tests/                   # Test suite (pytest + pytest-asyncio)
+│   ├── conftest.py          # Fixtures: DB sessions, test clients, factory helpers
+│   ├── test_api.py          # REST API endpoint tests
+│   ├── test_auth_api.py     # Auth API endpoint tests
+│   ├── test_auth_service.py # Auth service logic tests
+│   ├── test_comment_api.py  # Comment API endpoint tests
+│   ├── test_comment_service.py # Comment service logic tests
+│   ├── test_flash.py        # Flash message utility tests
+│   ├── test_models.py       # ORM model tests
+│   ├── test_service.py      # Ticket service layer tests
+│   ├── test_state_machine.py# State machine transition tests
+│   ├── test_web_ui.py       # Web UI route and template rendering tests
+│   └── test_admin.py        # Admin user management tests
 │
-├── .env.example             # Example environment variables
-├── pyproject.toml           # Project metadata & dependencies
+├── main.py                  # Entry-point scaffold (prints greeting)
+├── pyproject.toml           # Project metadata & dependencies (PEP 621, uv)
 ├── README.md                # Human-facing project overview
 ├── SPECS.md                 # Original system specification
 └── DESIGN.md                # This file
 ```
+
+> **Note**: The originally-planned `repository/` layer and `services/audit.py` were not implemented. Audit logging is handled inline within the ticket service, and queries go directly through SQLAlchemy ORM relationships (e.g., `ticket.audit_logs`, `ticket.comments`).
 
 ---
 
@@ -142,7 +172,9 @@ The engine factory in `superticket/db/engine.py` will read the connection string
 | Column        | Type     | Constraints              |
 |---------------|----------|--------------------------|
 | id            | String   | Primary Key (e.g., INC-2024-001) |
+| description   | Text     | Nullable                 |
 | requester_id  | String   | Not Null                 |
+| assigned_to   | String   | Nullable (FK → User.email)|
 | category      | String   | Not Null                 |
 | sub_category  | String   | Not Null                 |
 | item          | String   | Not Null                 |
@@ -152,6 +184,29 @@ The engine factory in `superticket/db/engine.py` will read the connection string
 | state         | Enum     | NEW, TRIAGE, ASSIGNED, IN_PROGRESS, PENDING_VENDOR, RESOLVED, CLOSED |
 | created_at    | DateTime | Default: now()           |
 | updated_at    | DateTime | On Update: now()         |
+
+**`AuditLog` Model:**
+| Column        | Type     | Constraints              |
+|---------------|----------|--------------------------|
+| id            | UUID     | Primary Key              |
+| ticket_id     | String   | Foreign Key → Ticket.id  |
+| action        | String   | Not Null                 |
+| old_value     | JSON     | Nullable                 |
+| new_value     | JSON     | Not Null                 |
+| performed_by  | String   | Nullable                 |
+| timestamp     | DateTime | Default: now()           |
+
+**`Comment` Model:**
+| Column        | Type     | Constraints              |
+|---------------|----------|--------------------------|
+| id            | UUID     | Primary Key              |
+| ticket_id     | String   | Foreign Key → Ticket.id  |
+| author_email  | String   | Not Null                 |
+| body          | Text     | Not Null                 |
+| is_internal   | Boolean  | Default: False           |
+| created_at    | DateTime | Default: now()           |
+
+**`User` Model:**
 
 **`AuditLog` Model:**
 | Column        | Type     | Constraints              |
@@ -192,15 +247,29 @@ The ticket lifecycle is strictly enforced by the `TicketService` layer.
 7. `CLOSED` — Final state.
 
 ### Transition Rules
-- **Linear Progression**: A ticket **cannot** move to `CLOSED` without first passing through `RESOLVED`.
-- **Re-opening (Deferred)**: Replying to a `RESOLVED` ticket within 48h moves it to `IN_PROGRESS`. After 48h, a new linked ticket is created.
+
+- **Linear Progression**: A ticket cannot move to `CLOSED` without first passing through `RESOLVED`. From `NEW`, one-step-forward skips are allowed (e.g., NEW → ASSIGNED, bypassing TRIAGE).
+- **Re-opening (Partial)**: A `RESOLVED` ticket can transition back to `IN_PROGRESS` in the state machine. The 48-hour window logic is deferred; any re-open moves to `IN_PROGRESS`.
 - **Pending Timers (Deferred)**: Moving to `PENDING_VENDOR` pauses the SLA clock.
-- **No Backward Jumps**: Moving from `ASSIGNED` back to `NEW` is invalid.
+- **No Backward Jumps**: Moving from `ASSIGNED` back to `NEW` or `TRIAGE` is invalid.
+
+### Valid Transitions (as implemented)
+
+| From        | To                              |
+|-------------|----------------------------------|
+| NEW         | TRIAGE, ASSIGNED                 |
+| TRIAGE      | ASSIGNED                         |
+| ASSIGNED    | IN_PROGRESS, PENDING_VENDOR      |
+| IN_PROGRESS | PENDING_VENDOR, RESOLVED         |
+| PENDING_VENDOR | IN_PROGRESS, RESOLVED         |
+| RESOLVED    | CLOSED, IN_PROGRESS              |
+| CLOSED      | *(terminal — no transitions)*   |
 
 ### Implementation
-- A dictionary mapping states to valid next states will live in `services/ticket.py`.
+
+- A dictionary mapping states to valid next states lives in `services/state_machine.py` (`VALID_TRANSITIONS`).
 - The service layer throws a custom `InvalidStateTransition` exception if rules are violated.
-- Every successful transition triggers an `AuditLog` entry.
+- Every successful transition triggers an `AuditLog` entry (handled inline in the ticket service).
 
 ---
 
@@ -221,6 +290,13 @@ Base path: `/api/v1`
 | POST   | `/tickets/{id}/transition` | Trigger a state change      | Yes  |
 | GET    | `/tickets/{id}/audit` | Get the immutable audit log     | Yes  |
 
+**Comment Endpoints:**
+
+| Method | Path                              | Description                             | Auth |
+|--------|-----------------------------------|-----------------------------------------|------|
+| POST   | `/tickets/{ticket_id}/comments`   | Create a comment on a ticket            | Yes  |
+| GET    | `/tickets/{ticket_id}/comments`   | List comments (paginated, filterable by internal/public) | Yes |
+
 **Auth Endpoints:**
 
 | Method | Path                  | Description                     | Auth |
@@ -228,6 +304,27 @@ Base path: `/api/v1`
 | POST   | `/auth/register`      | Register a new user             | No   |
 | POST   | `/auth/token`         | Login, return JWT access token  | No   |
 | GET    | `/auth/me`            | Get current user profile        | Yes  |
+
+**Web UI Routes (Jinja2-rendered HTML):**
+
+| Path              | Description                                   | Auth |
+|-------------------|-----------------------------------------------|------|
+| `/login`          | Login page                                    | No   |
+| `/register`       | User registration page                        | No   |
+| `/logout`         | Log out and redirect to login                 | Yes  |
+| `/portal/`        | Self-service ticket listing                   | Yes  |
+| `/portal/tickets/{id}` | View a single ticket as requester       | Yes  |
+| `/portal/new`     | Create a new ticket form                      | Yes  |
+| `/agent/tickets`  | Agent workspace — list and manage tickets     | Yes (agent/admin) |
+| `/agent/tickets/{id}` | Agent view of a single ticket           | Yes (agent/admin) |
+| `/admin/users`    | Admin user management — list, role/active toggle, delete | Yes (admin) |
+| `/kb/`            | Browse knowledge base articles                | No   |
+
+**Knowledge Base Endpoint:**
+
+| Method | Path                  | Description                     | Auth |
+|--------|-----------------------|---------------------------------|------|
+| GET    | `/articles`           | List KB articles with search    | No   |
 
 All ticket endpoints require a valid JWT in the `Authorization: Bearer <token>` header. The `performed_by` field on audit logs is auto-populated from the authenticated user's email.
 
@@ -271,6 +368,8 @@ We use semantic versioning with explicit stage suffixes:
 | 3.5       | beta.1.x     | Prevent comments on CLOSED tickets        | 2026-05-16 |
 | 3.6       | beta.1.x     | Admin user management interface         | 2026-05-16 |
 
+> **⚠ Known Issue**: Alembic migration `51adc2175062_add_comments_table.py` has empty `upgrade()`/`downgrade()` functions and performs no DDL. The comments table was likely created by SQLAlchemy's declarative mapping rather than through Alembic. This should be fixed before running migrations on a fresh database.
+
 ### Future Milestones (Deferred)
 
 These features are intentionally out of scope for the current MVP to keep complexity low.
@@ -288,16 +387,18 @@ These features are intentionally out of scope for the current MVP to keep comple
 
 ## 9. Configuration & Environment
 
-Environment variables will be loaded via `pydantic-settings` from a `.env` file:
+Environment variables are loaded via `pydantic-settings` from a `.env` file (see `core/config.py`). The current settings class defines:
 
-```env
-DATABASE_URL=sqlite:///./superticket.db
-DEBUG=True
-APP_VERSION=0.1.0-beta.1
-SECRET_KEY=your-secret-key-here
-```
+| Setting | Env Var | Default Value | Description |
+|---------|---------|---------------|-------------|
+| database_url | DATABASE_URL | `sqlite:///./superticket.db` | SQLAlchemy connection string |
+| debug | DEBUG | `False` | Debug mode for development |
+| app_version | APP_VERSION | *(see config.py)* | Application version displayed in API docs |
+| secret_key | SECRET_KEY | *insecure dev default* | Signing key for JWT + session cookies — **must change in production** |
+| algorithm | ALGORITHM | `HS256` | JWT signing algorithm |
+| access_token_expire_minutes | ACCESS_TOKEN_EXPIRE_MINUTES | `30` | JWT token expiration window |
 
-This keeps secrets out of the codebase and makes the application 12-factor compliant.
+> **Note**: The default `app_version` in `core/config.py` may lag behind the version in `pyproject.toml`. When releasing a new version, update both locations. No `.env.example` file exists yet; create one from the table above for onboarding.
 
 ---
 
@@ -312,7 +413,7 @@ This keeps secrets out of the codebase and makes the application 12-factor compl
 - **Fixtures**: `pytest-asyncio` for async service tests
 - **DB**: Session-scoped SQLite in-memory engine with function-scoped transaction rollback fixtures (`tests/conftest.py`)
 
-**Test Suite**: 151 tests covering the state machine, service layer, API endpoints, web UI routes, ORM models, authentication, and admin user management.
+**Test Suite**: 201 tests covering the state machine, service layer, API endpoints, web UI routes, ORM models, authentication, and admin user management.
 
 ---
 
@@ -322,7 +423,9 @@ This keeps secrets out of the codebase and makes the application 12-factor compl
 |------------|---------------------------------------|------------------------------------------------|
 | 2026-05-10 | FastAPI over Django                   | API-first goal, async support, modern Python   |
 | 2026-05-10 | SQLite → PostgreSQL (Future)          | Zero-config MVP, flexibility via SQLAlchemy    |
-| 2026-05-10 | Custom State Machine in Service Layer | Business logic must be separated from DB layer |
+| 2026-05-10 | Custom State Machine in Service Layer | Business logic must be separated from DB layer; transition rules live in `services/state_machine.py` |
 | 2026-05-10 | Pydantic v2                           | Performance, strict typing, FastAPI native     |
 | 2026-05-15 | Local DB auth (bcrypt + JWT)          | Simple, no external IdP dependency for MVP     |
 | 2026-05-15 | OAuth2/SAML deferred to rc2           | Enterprise SSO is a deployment concern, not core logic |
+| 2026-05-15 | Jinja2 web UI over SPA                | Server-side rendering avoids build toolchain complexity for MVP; easier to prototype portal/agent/admin views quickly |
+| 2026-05-15 | No Repository Layer                    | Original design called for a repository abstraction between services and SQLAlchemy. It was deemed unnecessary indirection — the service layer queries ORM relationships directly, keeping code simple and testable |
