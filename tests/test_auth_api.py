@@ -91,6 +91,32 @@ class TestRegister:
         )
         assert response.status_code == 422
 
+    def test_web_form_rejects_short_password(self, client):
+        """Web /register form also requires min 8 chars, matching API schema."""
+        response = client.post(
+            "/register",
+            data={
+                "full_name": "Test User",
+                "email": "formtest@example.com",
+                "password": "short6",
+            },
+            follow_redirects=False,
+        )
+        assert response.status_code == 422
+
+    def test_web_form_accepts_8_char_password(self, client):
+        """Web /register form accepts passwords of exactly 8 characters."""
+        response = client.post(
+            "/register",
+            data={
+                "full_name": "Test User 2",
+                "email": "formtest2@example.com",
+                "password": "12345678",
+            },
+            follow_redirects=False,
+        )
+        assert response.status_code == 303
+
     def test_register_with_role(self, client):
         response = client.post(
             "/api/v1/auth/register",

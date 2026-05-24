@@ -68,7 +68,7 @@ def register_submit(
     request: Request,
     full_name: str = Form(...),
     email: str = Form(...),
-    password: str = Form(min_length=6),
+    password: str = Form(min_length=8),
     db: Session = Depends(get_db),
 ):
     """Create a new user account and redirect to login."""
