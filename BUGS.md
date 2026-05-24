@@ -1,17 +1,5 @@
 # Known Bugs
 
-## Bug 6: Web views fetch all 1000 tickets and filter/paginate in-memory (MEDIUM)
-
-**Affected files:**
-- `views/portal.py:33-34` — portal dashboard
-- `views/agent.py:46-59` — agent ticket queue
-
-**Current behavior:** Both views call `TicketService.list_(db, skip=0, limit=1000)` and then filter by `requester_id` / `state` / `priority` / `assigned_to` in Python. Pagination (`skip`/`limit`) is applied to the in-memory list, not the database query. The DB query always fetches up to 1000 records regardless of what page is being viewed.
-
-**Expected behavior:** Filtering and pagination should be pushed down to `TicketService.list_` (or new methods) with WHERE clauses and LIMIT/OFFSET on the SQL query.
-
----
-
 ## Bug 7: Exception handlers return JSON to browsers (MEDIUM)
 
 **Affected files:** `main.py:88-101`, `views/portal.py:98`, `views/agent.py:91`

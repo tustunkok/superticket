@@ -129,17 +129,37 @@ class TicketService:
         return ticket
 
     @staticmethod
-    def count(session: Session) -> int:
-        """Return the total number of tickets in the database."""
-        result = session.execute(select(func.count()).select_from(Ticket))
+    def count(session: Session, *, requester_id: str | None = None, state: str | None = None, priority: str | None = None, assigned_to: str | None = None) -> int:
+        """Return the total number of tickets matching optional filter criteria."""
+        stmt = select(func.count()).select_from(Ticket)
+        if requester_id is not None:
+            stmt = stmt.where(Ticket.requester_id == requester_id)
+        if state is not None:
+            stmt = stmt.where(Ticket.state == state)
+        if priority is not None:
+            stmt = stmt.where(Ticket.priority == priority)
+        if assigned_to == "":
+            stmt = stmt.where(Ticket.assigned_to.is_(None))
+        elif assigned_to is not None:
+            stmt = stmt.where(Ticket.assigned_to == assigned_to)
+        result = session.execute(stmt)
         return result.scalar() or 0
 
     @staticmethod
-    def list_(session: Session, *, skip: int = 0, limit: int = 100) -> list[Ticket]:
-        """Paginated listing of tickets ordered by newest first."""
-        result = session.execute(
-            select(Ticket).order_by(Ticket.created_at.desc(), Ticket.id.desc()).offset(skip).limit(limit)
-        )
+    def list_(session: Session, *, skip: int = 0, limit: int = 100, requester_id: str | None = None, state: str | None = None, priority: str | None = None, assigned_to: str | None = None) -> list[Ticket]:
+        """Paginated listing of tickets ordered by newest first with optional SQL-level filters."""
+        stmt = select(Ticket).order_by(Ticket.created_at.desc(), Ticket.id.desc())
+        if requester_id is not None:
+            stmt = stmt.where(Ticket.requester_id == requester_id)
+        if state is not None:
+            stmt = stmt.where(Ticket.state == state)
+        if priority is not None:
+            stmt = stmt.where(Ticket.priority == priority)
+        if assigned_to == "":
+            stmt = stmt.where(Ticket.assigned_to.is_(None))
+        elif assigned_to is not None:
+            stmt = stmt.where(Ticket.assigned_to == assigned_to)
+        result = session.execute(stmt.offset(skip).limit(limit))
         return list(result.scalars().all())
 
     @staticmethod

@@ -31,11 +31,8 @@ def portal_dashboard(
     current_user: User = Depends(get_current_active_user_from_cookie),
 ):
     """List tickets for the current user."""
-    # Get all tickets and filter by requester_id (requester_id is always a UUID)
-    all_tickets = TicketService.list_(db, skip=0, limit=1000)
-    user_tickets = [t for t in all_tickets if t.requester_id == str(current_user.id)]
-    total = len(user_tickets)
-    paginated = user_tickets[skip : skip + limit]
+    total = TicketService.count(db, requester_id=str(current_user.id))
+    paginated = TicketService.list_(db, requester_id=str(current_user.id), skip=skip, limit=limit)
     return templates.TemplateResponse(
         request,
         "portal/dashboard.html",

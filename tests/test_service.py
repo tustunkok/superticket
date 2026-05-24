@@ -143,6 +143,171 @@ class TestList:
         assert len(results) == 2
         assert results[0].id == "INC-2026-201"
 
+    def test_list_filter_by_requester_id(self, db_session):
+        for i in range(3):
+            TicketService.create(
+                session=db_session,
+                id=f"INC-2026-{300 + i}",
+                requester_id=f"user-{i}",
+                category="Misc",
+                sub_category="Other",
+                item="General",
+                urgency="low",
+                impact="individual",
+            )
+        results = TicketService.list_(db_session, requester_id="user-1")
+        assert len(results) == 1
+        assert results[0].id == "INC-2026-301"
+
+    def test_list_filter_by_state(self, db_session):
+        for i in range(3):
+            TicketService.create(
+                session=db_session,
+                id=f"INC-2026-{400 + i}",
+                requester_id="user-common",
+                category="Misc",
+                sub_category="Other",
+                item="General",
+                urgency="low",
+                impact="individual",
+            )
+        TicketService.transition_state(db_session, "INC-2026-401", TicketState.TRIAGE)
+        results = TicketService.list_(db_session, state=TicketState.NEW.value)
+        assert len(results) == 2
+        for r in results:
+            assert r.state == TicketState.NEW.value
+
+    def test_list_filter_by_priority(self, db_session):
+        for i in range(3):
+            TicketService.create(
+                session=db_session,
+                id=f"INC-2026-{500 + i}",
+                requester_id="user-common",
+                category="Misc",
+                sub_category="Other",
+                item="General",
+                urgency="low",
+                impact="individual",
+            )
+        TicketService.update(db_session, "INC-2026-501", priority="P1")
+        results = TicketService.list_(db_session, priority="P4")
+        assert len(results) == 2
+
+    def test_list_combined_filters_with_pagination(self, db_session):
+        for i in range(5):
+            TicketService.create(
+                session=db_session,
+                id=f"INC-2026-{600 + i}",
+                requester_id="user-common",
+                category="Misc",
+                sub_category="Other",
+                item="General",
+                urgency="low",
+                impact="individual",
+            )
+        TicketService.transition_state(db_session, "INC-2026-604", TicketState.TRIAGE)
+        TicketService.transition_state(db_session, "INC-2026-603", TicketState.TRIAGE)
+        results = TicketService.list_(db_session, state=TicketState.NEW.value, skip=1, limit=1)
+        assert len(results) == 1
+        assert results[0].state == TicketState.NEW.value
+
+    def test_list_no_filter(self, db_session):
+        for i in range(3):
+            TicketService.create(
+                session=db_session,
+                id=f"INC-2026-{700 + i}",
+                requester_id="user-common",
+                category="Misc",
+                sub_category="Other",
+                item="General",
+                urgency="low",
+                impact="individual",
+            )
+        results = TicketService.list_(db_session)
+        assert len(results) >= 3
+
+
+class TestCount:
+    def test_count_unfiltered(self, db_session):
+        for i in range(3):
+            TicketService.create(
+                session=db_session,
+                id=f"INC-2026-{800 + i}",
+                requester_id="user-common",
+                category="Misc",
+                sub_category="Other",
+                item="General",
+                urgency="low",
+                impact="individual",
+            )
+        assert TicketService.count(db_session) >= 3
+
+    def test_count_filtered_by_state(self, db_session):
+        for i in range(3):
+            TicketService.create(
+                session=db_session,
+                id=f"INC-2026-{900 + i}",
+                requester_id="user-common",
+                category="Misc",
+                sub_category="Other",
+                item="General",
+                urgency="low",
+                impact="individual",
+            )
+        TicketService.transition_state(db_session, "INC-2026-901", TicketState.TRIAGE)
+        assert TicketService.count(db_session, state=TicketState.NEW.value) == 2
+
+    def test_count_filtered_by_priority(self, db_session):
+        for i in range(3):
+            TicketService.create(
+                session=db_session,
+                id=f"INC-2026-{910 + i}",
+                requester_id="user-common",
+                category="Misc",
+                sub_category="Other",
+                item="General",
+                urgency="low",
+                impact="individual",
+            )
+        TicketService.update(db_session, "INC-2026-911", priority="P1")
+        assert TicketService.count(db_session, priority="P4") == 2
+
+    def test_count_filtered_by_requester_id(self, db_session):
+        for i in range(3):
+            TicketService.create(
+                session=db_session,
+                id=f"INC-2026-{920 + i}",
+                requester_id=f"user-{i}",
+                category="Misc",
+                sub_category="Other",
+                item="General",
+                urgency="low",
+                impact="individual",
+            )
+        assert TicketService.count(db_session, requester_id="user-1") == 1
+
+    def test_count_combined_filters(self, db_session):
+        for i in range(4):
+            TicketService.create(
+                session=db_session,
+                id=f"INC-2026-{930 + i}",
+                requester_id="user-common",
+                category="Misc",
+                sub_category="Other",
+                item="General",
+                urgency="low",
+                impact="individual",
+            )
+        TicketService.transition_state(db_session, "INC-2026-933", TicketState.TRIAGE)
+        TicketService.update(db_session, "INC-2026-931", priority="P1")
+        assert (
+            TicketService.count(
+                db_session, state=TicketState.NEW.value, priority="P4"
+            )
+            == 2
+        )
+
+
 
 class TestUpdate:
     def test_update_allowed_fields(self, db_session):

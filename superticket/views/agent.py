@@ -41,20 +41,22 @@ def agent_ticket_queue(
     current_user: User = Depends(require_agent_or_admin_cookie),
 ):
     """Full ticket queue with filters."""
-    all_tickets = TicketService.list_(db, skip=0, limit=1000)
+    assigned_to_filter = "" if assigned_to == "unassigned" else assigned_to
 
-    filtered = all_tickets
-    if state:
-        filtered = [t for t in filtered if t.state == state]
-    if priority:
-        filtered = [t for t in filtered if t.priority == priority]
-    if assigned_to == "unassigned":
-        pass
-    elif assigned_to:
-        filtered = [t for t in filtered if getattr(t, 'assigned_to', None) == assigned_to]
-
-    total = len(filtered)
-    paginated = filtered[skip : skip + limit]
+    total = TicketService.count(
+        db,
+        state=state,
+        priority=priority,
+        assigned_to=assigned_to_filter,
+    )
+    paginated = TicketService.list_(
+        db,
+        skip=skip,
+        limit=limit,
+        state=state,
+        priority=priority,
+        assigned_to=assigned_to_filter,
+    )
 
     return templates.TemplateResponse(
         request,
