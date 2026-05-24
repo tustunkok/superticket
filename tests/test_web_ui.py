@@ -671,3 +671,61 @@ class TestAgentRoleGuard:
             follow_redirects=False,
         )
         assert resp.status_code == 303
+
+
+class TestExceptionHandlersBug7:
+    """Bug 7: Exception handlers should return HTML for browser requests, JSON for API requests."""
+
+    def test_ticket_not_found_returns_html_for_browser(self, user_client):
+        """TicketNotFound handler returns an HTML error page for browser requests."""
+        resp = user_client.get(
+            "/portal/tickets/INC-NONEXISTENT",
+            headers={"Accept": "text/html"},
+        )
+        assert resp.status_code == 404
+        assert "Not Found" in resp.text
+        assert "INC-NONEXISTENT" in resp.text
+
+    def test_ticket_not_found_returns_json_for_api(self, user_client):
+        """TicketNotFound handler returns JSON for API requests."""
+        resp = user_client.get(
+            "/api/v1/tickets/INC-NONEXISTENT",
+        )
+        assert resp.status_code == 404
+        data = resp.json()
+        assert data["code"] == "TICKET_NOT_FOUND"
+
+    def test_agent_workspace_not_found_returns_html(self, agent_client):
+        """Agent workspace TicketNotFound returns HTML for browser requests."""
+        resp = agent_client.get(
+            "/agent/tickets/INC-NONEXISTENT/work",
+            headers={"Accept": "text/html"},
+        )
+        assert resp.status_code == 404
+        assert "Not Found" in resp.text
+
+    def test_invalid_state_transition_returns_html(self, agent_client):
+        """InvalidStateTransition handler returns an HTML error page for browser requests."""
+        agent_client.post(
+            "/api/v1/tickets",
+            json={
+                "id": "INC-STATE-BUG7",
+                "requester_id": "someone@example.com",
+                "category": "Hardware",
+                "sub_category": "Laptop",
+                "item": "Screen",
+                "urgency": "high",
+                "impact": "individual",
+            },
+        )
+        resp = agent_client.post(
+            "/agent/tickets/INC-STATE-BUG7/triage",
+            data={
+                "category": "Access",
+                "sub_category": "Account",
+                "item": "Password Reset",
+                "urgency": "high",
+                "impact": "org",
+            },
+            follow_redirects=False,
+        )

@@ -19,6 +19,7 @@ from superticket.core.exceptions import InvalidStateTransition, TicketClosed, Ti
 from superticket.db.engine import init_db, SessionLocal
 from superticket.models.user import User
 from superticket.services.auth import hash_password
+from superticket.template_engine import templates
 from superticket.views import admin_router, agent_router, auth_router as web_auth_router, kb_router, portal_router
 
 
@@ -91,28 +92,47 @@ app.include_router(agent_router)
 app.include_router(admin_router)
 
 
-@app.exception_handler(TicketNotFound)
-async def ticket_not_found_handler(request, exc: TicketNotFound):
+def _render_error_response(
+    request: Request,
+    exc: Exception,
+    status_code: int,
+    title: str,
+    code: str,
+):
+    """Return HTML for browser requests, JSON for API requests."""
+    accept = request.headers.get("accept", "")
+    is_api = request.url.path.startswith("/api/")
+    if "text/html" in accept and not is_api:
+        return templates.TemplateResponse(
+            request,
+            "error.html",
+            {
+                "status_code": status_code,
+                "title": title,
+                "message": str(exc),
+                "code": code,
+            },
+            status_code=status_code,
+        )
     return JSONResponse(
-        status_code=404,
-        content={"detail": str(exc), "code": "TICKET_NOT_FOUND"},
+        status_code=status_code,
+        content={"detail": str(exc), "code": code},
     )
+
+
+@app.exception_handler(TicketNotFound)
+async def ticket_not_found_handler(request: Request, exc: TicketNotFound):
+    return _render_error_response(request, exc, 404, "Not Found", "TICKET_NOT_FOUND")
 
 
 @app.exception_handler(InvalidStateTransition)
-async def invalid_state_transition_handler(request, exc: InvalidStateTransition):
-    return JSONResponse(
-        status_code=400,
-        content={"detail": str(exc), "code": "INVALID_STATE_TRANSITION"},
-    )
+async def invalid_state_transition_handler(request: Request, exc: InvalidStateTransition):
+    return _render_error_response(request, exc, 400, "Invalid State Transition", "INVALID_STATE_TRANSITION")
 
 
 @app.exception_handler(TicketClosed)
-async def ticket_closed_handler(request, exc: TicketClosed):
-    return JSONResponse(
-        status_code=403,
-        content={"detail": str(exc), "code": "TICKET_CLOSED"},
-    )
+async def ticket_closed_handler(request: Request, exc: TicketClosed):
+    return _render_error_response(request, exc, 403, "Ticket Closed", "TICKET_CLOSED")
 
 
 @app.get("/health")
