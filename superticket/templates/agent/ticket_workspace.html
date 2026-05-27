@@ -19,19 +19,46 @@
             </div>
             <div class="card-body">
                 {% if ticket.state == 'triage' %}
+                {% if ticket.ai_category %}
+                <div class="alert alert-light border d-flex align-items-start gap-2 mb-3" role="alert">
+                    <i class="bi bi-stars text-warning mt-1"></i>
+                    <div class="flex-grow-1 small">
+                        <p class="mb-1 fw-semibold"><i class="bi bi-robot me-1"></i>AI Classification</p>
+                        <div class="row g-1">
+                            <div class="col-auto"><span class="text-muted">Category:</span> {{ ticket.ai_category }}</div>
+                            {% if ticket.ai_sub_category %}<div class="col-auto"><span class="text-muted">Sub:</span> {{ ticket.ai_sub_category }}</div>{% endif %}
+                            {% if ticket.ai_item %}<div class="col-auto"><span class="text-muted">Item:</span> {{ ticket.ai_item }}</div>{% endif %}
+                        </div>
+                        {% if confidence_score is not none and confidence_score is defined %}
+                        <p class="mb-0 mt-1 text-muted">Confidence: <strong>{{ (ticket.confidence_score * 100) | round(0) }}%</strong></p>
+                        {% endif %}
+                        {% if ticket.suggested_resolution %}
+                        <p class="mb-0 mt-1"><span class="text-muted">Resolution:</span> {{ ticket.suggested_resolution }}</p>
+                        {% endif %}
+                        {% if ticket.sentiment_score is not none %}
+                        <p class="mb-0 mt-1"><span class="text-muted">Sentiment:</span> <i class="bi bi-{% if ticket.sentiment_score >= 0.3 %}emoji-smile-fill text-success{% elif ticket.sentiment_score <= -0.3 %}emoji-frown-fill text-danger{% else %}emoji-neutral-fill text-warning{% endif %}"></i></p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if ticket.pii_detected %}
+                <div class="alert alert-danger py-1 px-2 mb-3 small">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>PII detected in description. Handle with care.
+                </div>
+                {% endif %}
+                {% endif %}
                 <form method="POST" action="/agent/tickets/{{ ticket.id }}/triage">
                     <div class="row g-2 mb-3">
                         <div class="col-6">
                             <label class="form-label small">Category</label>
-                            <input type="text" class="form-control form-control-sm" name="category" value="{{ ticket.category }}" required>
+                            <input type="text" class="form-control form-control-sm" name="category" placeholder="{{ ticket.ai_category or '' }}" value="{{ ticket.category }}" required>
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Sub-Category</label>
-                            <input type="text" class="form-control form-control-sm" name="sub_category" value="{{ ticket.sub_category }}" required>
+                            <input type="text" class="form-control form-control-sm" name="sub_category" placeholder="{{ ticket.ai_sub_category or '' }}" value="{{ ticket.sub_category }}" required>
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Item</label>
-                            <input type="text" class="form-control form-control-sm" name="item" value="{{ ticket.item }}" required>
+                            <input type="text" class="form-control form-control-sm" name="item" placeholder="{{ ticket.ai_item or '' }}" value="{{ ticket.item }}" required>
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Requester</label>
@@ -62,6 +89,10 @@
                     <p class="mb-1 small text-muted">Description</p>
                     <p class="mb-2 small">{{ ticket.description }}</p>
                     {% endif %}
+                    <div class="mb-3">
+                        <label for="override-reason" class="form-label small">Override Reason (optional)</label>
+                        <input type="text" id="override-reason" class="form-control form-control-sm" name="override_reason" placeholder="Why did you change the AI classification?">
+                    </div>
                     <button type="submit" class="btn btn-success btn-sm w-100">
                         <i class="bi bi-check-lg me-1"></i>Confirm &amp; Assign
                     </button>

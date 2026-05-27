@@ -9,6 +9,7 @@ from superticket.db.base import Base
 from superticket.models import ticket  # noqa: F401
 from superticket.models import user  # noqa: F401
 from superticket.models import comment  # noqa: F401
+from superticket.models import triage_log  # noqa: F401
 
 
 @pytest.fixture(scope="session")

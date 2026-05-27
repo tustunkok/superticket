@@ -1,10 +1,13 @@
 """Ticket CRUD & state transition endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import asyncio
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from superticket.core.dependencies import get_current_active_user, get_db
+from superticket.db.engine import session_factory
 from superticket.models.user import User
 from superticket.schemas.ticket import (
     AuditLogOut,
@@ -19,9 +22,17 @@ from superticket.services.ticket import TicketService
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 
 
+async def _run_triage(ticket_id: str) -> None:
+    """Background task: run LLM triage on a newly created ticket."""
+    from superticket.services.triage import triage_ticket
+
+    await triage_ticket(ticket_id, session_factory)
+
+
 @router.post("", response_model=TicketOut, status_code=status.HTTP_201_CREATED)
 def create_ticket(
     data: TicketCreate,
+    bg_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> TicketOut:
@@ -37,6 +48,8 @@ def create_ticket(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Ticket with id '{data.id}' already exists.",
         ) from exc
+
+    bg_tasks.add_task(_run_triage, ticket.id)
     return ticket
 
 

@@ -211,6 +211,26 @@ class TestPortalViews:
         assert resp.status_code == 303
         assert "/portal/tickets/" in resp.headers["location"]
 
+    def test_portal_create_triggers_triage(self, user_client):
+        from unittest.mock import patch
+
+        with patch("superticket.views.portal._run_triage") as mock_triage:
+            resp = user_client.post(
+                "/portal/tickets",
+                data={
+                    "category": "Software",
+                    "sub_category": "Bug",
+                    "item": "Crash",
+                    "urgency": "medium",
+                    "impact": "individual",
+                    "description": "App crashes on startup",
+                },
+                follow_redirects=False,
+            )
+            assert resp.status_code == 303
+            ticket_id = resp.headers["location"].split("/")[-1]
+            mock_triage.assert_called_once_with(ticket_id)
+
     def test_portal_ticket_detail(self, user_client):
         resp = user_client.get("/portal/tickets/INC-PORTAL-001")
         assert resp.status_code == 200

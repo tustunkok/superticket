@@ -13,6 +13,8 @@ engine = create_engine(
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+session_factory = SessionLocal
+
 
 def init_db() -> None:
     """Create all tables registered on the metadata."""

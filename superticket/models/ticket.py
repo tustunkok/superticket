@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, String, Text
 from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -13,6 +13,7 @@ from superticket.models.enums import TicketState
 
 if TYPE_CHECKING:
     from superticket.models.comment import Comment
+    from superticket.models.triage_log import TriageOverrideLog
 
 
 def _utc_now() -> datetime:
@@ -35,6 +36,15 @@ class Ticket(Base):
     state: Mapped[str] = mapped_column(String, nullable=False, default=TicketState.NEW.value)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     assigned_to: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    ai_category: Mapped[str | None] = mapped_column(String, nullable=True)
+    ai_sub_category: Mapped[str | None] = mapped_column(String, nullable=True)
+    ai_item: Mapped[str | None] = mapped_column(String, nullable=True)
+    sentiment_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    pii_detected: Mapped[bool] = mapped_column(Boolean, default=False)
+    suggested_resolution: Mapped[str | None] = mapped_column(Text, nullable=True)
+    confidence_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utc_now, onupdate=_utc_now
@@ -45,6 +55,9 @@ class Ticket(Base):
     )
     comments: Mapped[list["Comment"]] = relationship(
         "Comment", back_populates="ticket", cascade="all, delete-orphan", lazy="selectin", order_by="Comment.created_at.desc()"
+    )
+    triage_overrides: Mapped[list["TriageOverrideLog"]] = relationship(
+        "TriageOverrideLog", back_populates="ticket", cascade="all, delete-orphan", lazy="selectin"
     )
 
     def __repr__(self) -> str:

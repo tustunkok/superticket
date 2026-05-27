@@ -65,6 +65,13 @@ class TicketOut(BaseModel):
     priority: str
     state: str
     description: str | None = None
+    ai_category: str | None = None
+    ai_sub_category: str | None = None
+    ai_item: str | None = None
+    sentiment_score: float | None = None
+    pii_detected: bool = False
+    suggested_resolution: str | None = None
+    confidence_score: float | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -73,6 +80,27 @@ class TicketTransition(BaseModel):
     """Request body for a state transition."""
 
     target_state: TicketState
+
+
+class TriageResult(BaseModel):
+    """AI triage results for a ticket."""
+
+    ai_category: str | None = None
+    ai_sub_category: str | None = None
+    ai_item: str | None = None
+    sentiment_score: float | None = None
+    pii_detected: bool = False
+    suggested_resolution: str | None = None
+    confidence_score: float | None = None
+
+
+class TriageConfirmIn(BaseModel):
+    """Request body for confirming or overriding AI triage."""
+
+    category: str | None = None
+    sub_category: str | None = None
+    item: str | None = None
+    override_reason: str | None = None
 
 
 class TicketListOut(BaseModel):

@@ -13,7 +13,8 @@ from superticket.models.enums import TicketState
 from superticket.models.user import User
 from superticket.services.comment import CommentService
 from superticket.services.state_machine import valid_transitions
-from superticket.services.ticket import TicketService, _compute_priority
+from superticket.services.ticket import TicketService
+from superticket.services.triage import confirm_triage as triage_confirm_service
 from superticket.template_engine import templates
 
 router = APIRouter(prefix="/agent", tags=["agent"])
@@ -183,35 +184,50 @@ def transition_ticket(
     )
 
 
-@router.post("/tickets/{ticket_id}/triage")
-def triage_ticket(
+@router.get("/triage/queue")
+def triage_queue(
     request: Request,
-    ticket_id: str,
-    category: str = Form(...),
-    sub_category: str = Form(...),
-    item: str = Form(...),
-    urgency: str = Form(...),
-    impact: str = Form(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_agent_or_admin_cookie),
 ):
-    """Update ticket fields and transition from triage to assigned."""
-    priority = _compute_priority(urgency, impact)
-    TicketService.update(
-        db,
-        ticket_id,
-        category=category,
-        sub_category=sub_category,
-        item=item,
-        urgency=urgency,
-        impact=impact,
-        priority=priority,
-        performed_by=current_user.email,
+    """Triage queue — tickets in TRIAGE state awaiting human review."""
+    total = TicketService.count(db, state=TicketState.TRIAGE.value)
+    tickets = TicketService.list_(db, skip=0, limit=50, state=TicketState.TRIAGE.value)
+
+    return templates.TemplateResponse(
+        request,
+        "agent/triage_queue.html",
+        {
+            "user": current_user,
+            "tickets": tickets,
+            "total": total,
+        },
     )
-    TicketService.transition_state(
+
+
+@router.post("/tickets/{ticket_id}/triage")
+def confirm_triage_view(
+    request: Request,
+    ticket_id: str,
+    category: str = Form(default=""),
+    sub_category: str = Form(default=""),
+    item: str = Form(default=""),
+    urgency: str = Form(default=""),
+    impact: str = Form(default=""),
+    override_reason: str = Form(default=""),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_agent_or_admin_cookie),
+):
+    """Confirm or override AI triage results. Logs ground-truth overrides."""
+    triage_confirm_service(
         db,
         ticket_id,
-        TicketState.ASSIGNED,
+        category=category or None,
+        sub_category=sub_category or None,
+        item=item or None,
+        urgency=urgency if urgency else None,
+        impact=impact if impact else None,
+        override_reason=override_reason if override_reason else None,
         performed_by=current_user.email,
     )
     set_flash(request, "Ticket triaged and assigned.", "success")

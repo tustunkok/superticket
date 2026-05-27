@@ -351,7 +351,7 @@ We use semantic versioning with explicit stage suffixes:
 - **Beta**: `x.x.x-beta.x` — Feature-complete, testing & bug-fixing.
 - **Release**: `x.x.x` — Stable, production-ready.
 
-**Current Version**: `0.1.0-beta.1` (MVP Development)
+**Current Version**: `0.1.0-beta.2` (MVP Development)
 
 ---
 
@@ -376,10 +376,10 @@ These features are intentionally out of scope for the current MVP to keep comple
 
 | Milestone | Version       | Feature                                      |
 |-----------|---------------|----------------------------------------------|
-| 4         | alpha.4       | LLM Triage Integration (OpenAI-compatible)   |
-| 5         | beta.1        | Email-to-Ticket Processing                   |
-| 6         | beta.2        | Webhook Subscriptions (Slack, Teams, Jira)   |
-| 7         | beta.3        | SLA Management Engine & Breach Alerts        |
+| 4         | beta.2        | LLM Triage Integration (OpenAI-compatible)   |
+| 5         | beta.3        | Email-to-Ticket Processing                   |
+| 6         | beta.4        | Webhook Subscriptions (Slack, Teams, Jira)   |
+| 7         | beta.5        | SLA Management Engine & Breach Alerts        |
 | 8         | 0.1.0-rc1     | Containerization (Docker)                    |
 | 9         | 0.1.0-rc2     | Enterprise SSO authentication (OAuth2 / SAML)|
 

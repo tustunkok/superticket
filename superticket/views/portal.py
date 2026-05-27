@@ -1,6 +1,6 @@
 """Self-service portal web views."""
 
-from fastapi import APIRouter, Depends, Form, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -13,6 +13,13 @@ from superticket.services.ticket import TicketService
 from superticket.template_engine import templates
 
 router = APIRouter(prefix="/portal", tags=["portal"])
+
+
+async def _run_triage(ticket_id: str) -> None:
+    from superticket.db.engine import session_factory as sf
+    from superticket.services.triage import triage_ticket
+
+    await triage_ticket(ticket_id, sf)
 
 
 def _require_user(current_user: User) -> None:
@@ -59,6 +66,7 @@ def new_ticket_form(request: Request, current_user: User = Depends(get_current_a
 @router.post("/tickets")
 def create_ticket(
     request: Request,
+    bg_tasks: BackgroundTasks,
     category: str = Form(...),
     sub_category: str = Form(...),
     item: str = Form(...),
@@ -83,6 +91,7 @@ def create_ticket(
         description=description or None,
         performed_by=current_user.email,
     )
+    bg_tasks.add_task(_run_triage, ticket.id)
     set_flash(request, f"Ticket {ticket.id} created successfully.", "success")
     return RedirectResponse(url=f"/portal/tickets/{ticket.id}", status_code=status.HTTP_303_SEE_OTHER)
 
